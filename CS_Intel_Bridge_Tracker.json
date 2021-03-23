@@ -1,0 +1,26 @@
+{
+    "2019-03-23 07:49:55.489353": {
+        "Current Category Size": 24086,
+        "Number of URLs Removed": 0,
+        "Post Type": "complete",
+        "Total CrowdStrike Indicators Retrieved": 23969,
+        "URLs added to Zscaler": 873,
+        "Zscaler Quota": 223650
+    },
+    "2020-03-23 08:26:34.907888": {
+        "Current Category Size": 24086,
+        "Number of URLs Removed": 0,
+        "Post Type": "complete",
+        "Total CrowdStrike Indicators Retrieved": 168,
+        "URLs added to Zscaler": 39,
+        "Zscaler Quota": 223650
+    },
+    "2021-03-23 09:07:09.830780": {
+        "Current Category Size": 24098,
+        "Number of URLs Removed": 0,
+        "Post Type": "complete",
+        "Total CrowdStrike Indicators Retrieved": 23969,
+        "URLs added to Zscaler": 879,
+        "Zscaler Quota": 223633
+    }
+}
