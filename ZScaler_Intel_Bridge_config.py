@@ -3,8 +3,8 @@
 # CrowdStrike Data
 
 #CrowdStrike API Credentials
-cs_clientID = "d484786204f54c12a395ef0eec1f77c7"
-cs_secret = "4BZs9vDyqUFM31cJfbYWuR5GxP670EAgoOaKw8Q2"
+cs_clientID = ""
+cs_secret = ""
 
 # CrowdStrike API Constants
 cs_base_url = "https://api.crowdstrike.com"
