@@ -19,7 +19,7 @@ parts
 src/*.egg-info
 lib/
 lib64
-
+include/
 # C extensions
 *.so
 config.py
