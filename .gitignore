@@ -22,7 +22,6 @@ lib64
 include/
 # C extensions
 *.so
-config.py
 # Distribution / packaging
 .Python
 build/

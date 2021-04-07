@@ -9,8 +9,12 @@ While running, the integration maintains a collection of malicious URLs from Cro
 
 With Python 3.7+ installed:
 ```bash
-git clone [REPO]
-cd [PROJECT]
+git clone https://github.com/CrowdStrike/zscaler-FalconX-integration.git
+cd zscaler-FalconX-integration
+```
+Now, open config.py and enter config variables
+
+```bash
 python main.py
 ```
 

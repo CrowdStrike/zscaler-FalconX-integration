@@ -1,6 +1,3 @@
-#copy/paste the content of this file into new file ./config.py and input values
-
-
 #CrowdStrike - Zscaler Intel Bridge Configuration File
 #CrowdStrike Data
 #CrowdStrike API Credentials
