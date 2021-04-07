@@ -1,16 +1,9 @@
 from app._util.intel_format import IntelFormat
 from app._util.logger import Logger
-from datetime import datetime
-from datetime import timedelta
 from requests.exceptions import HTTPError
 import config as config
 import requests
 import json
-import logging
-import sys
-import urllib
-import re
-import time
 import os
 
 class IntelPull():
@@ -20,14 +13,14 @@ class IntelPull():
         self.token = auth.get_token()
         self.base_url = config.cs_base_url 
         self.limit = config.cs_indicators_limit
+        self.indicators_remaining = 10000
+        self.payload = {}
         self.indicators_api = "/intel/queries/indicators/v1"     
         self.indicators_params = "?limit=" + str(self.limit) + "&offset=0&filter=type:'url'%2Bmalicious_confidence:'high'&include_deleted=false"
         self.deleted_indicators_params = "?limit=" + str(self.limit) +"&filter=deleted:true%2Btype:'url'%2Bmalicious_confidence:'high'"
         self.headers = {'Authorization': 'Bearer ' + str(self.token)}
-        self.payload = {}
         self.indicators_url = self.base_url + self.indicators_api + self.indicators_params
         self.deleted_indicators_url = self.base_url + self.indicators_api + self.deleted_indicators_params
-        self.indicators_remaining = 10000
         self.next_page_url = self.check_next_page_url('../queuing/intel.json')
         self.deleted_next_page_url = self.check_next_page_url('../queuing/intel_deleted.json')
 
@@ -73,12 +66,12 @@ class IntelPull():
         else:
             self.next_page_url = ""
         
-        meta = indicator_json['meta']
+        indicator_json['meta']
         intel = indicator_json['resources']
         
         #format before writing
         self.intel_format = IntelFormat()
-        raw_intel = self.intel_format.format_intel(intel)
+        self.intel_format.format_intel(intel)
         intel = self.intel_format.get_lookup_ready_urls()
         self.write_intel(intel, 'intel.json', self.next_page_url)
         return intel
@@ -108,12 +101,12 @@ class IntelPull():
         else:
             self.deleted_next_page_url = ''
         
-        meta = indicator_json['meta']
+        indicator_json['meta']
         intel = indicator_json['resources']
         
         #format before writing
         self.deleted_intel_format = IntelFormat()
-        raw_intel = self.deleted_intel_format.format_intel(intel)
+        self.deleted_intel_format.format_intel(intel)
         intel = self.deleted_intel_format.get_lookup_ready_urls()
         self.write_intel(intel, 'intel_deleted.json', self.deleted_next_page_url)
         return intel

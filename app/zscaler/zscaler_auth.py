@@ -1,14 +1,9 @@
 from app._util.logger import Logger
-from datetime import datetime
-from datetime import timedelta
 from requests.exceptions import HTTPError
 import config as config
 import requests
 import json
-import logging
 import sys
-import urllib
-import re
 import time
 
 class ZscalerAuth():
@@ -39,7 +34,7 @@ class ZscalerAuth():
         #configure the appropriate info for the call
         now = int(time.time() * 1000)
         n = str(now)[-6:]
-        r = str(int(n) >> 1).zfill(6)
+        str(int(n) >> 1).zfill(6)
 
         #call obfuscate method
         obfuscated_api_key = self.obfuscateApiKey(now)

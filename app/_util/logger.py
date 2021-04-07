@@ -1,5 +1,12 @@
 import logging
 import config as config
+
+#This class provides logging utility throughout the app
+#Initialize the class with logger = Logger()
+#Use functions to log at desired level
+    #Example:           logger.info("Message")
+    #Log File Result:   2021-03-29 18:03:09,154   47631 INFO   Message.
+    
 class Logger():
     logger = logging.getLogger()
     logging_level = config.logging_level
@@ -20,6 +27,10 @@ class Logger():
         content = str(message)
         logging.error(content)   
     
+
+
+
+#deprecated logging statements for reference
 
 # ('info', 'CrowdStrike base URL: ' + str(self.base_url))
 # ('info', 'API endpoint: ' + auth_URL)

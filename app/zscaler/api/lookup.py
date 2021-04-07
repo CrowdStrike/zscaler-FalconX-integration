@@ -1,14 +1,8 @@
 from app._util.logger import Logger
-from datetime import datetime
-from datetime import timedelta
 from requests.exceptions import HTTPError
 import config as config
-import re
 import requests
 import json
-import logging
-import sys
-import urllib
 import time
 
 class LookUp():

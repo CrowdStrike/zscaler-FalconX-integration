@@ -1,15 +1,8 @@
 from app._util.logger import Logger
-from datetime import datetime
-from datetime import timedelta
 from requests.exceptions import HTTPError
 import config as config
 import requests
-import json
-import logging
 import sys
-import urllib
-import re
-import time
 class CrowdStrikeAuth():
     def __init__(self):
         self.clientID = config.cs_clientID   #CS API ClientID

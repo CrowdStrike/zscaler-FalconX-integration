@@ -1,15 +1,9 @@
 from app._util.logger import Logger
-from datetime import datetime
-from datetime import timedelta
 from requests.exceptions import HTTPError
 import config as config
 import requests
 import json
-import logging
 import sys
-import urllib
-import re
-import time
 
 class Category():
     def __init__(self, auth):
@@ -34,7 +28,7 @@ class Category():
     def custom_category_check(self):
         try:
             custom_url_cat = requests.request("GET", self.category_check_url, headers=self.headers)
-            cat_result = str(custom_url_cat.status_code)
+            str(custom_url_cat.status_code)
         
         except (requests.exceptions.Timeout, requests.exceptions.TooManyRedirects, requests.exceptions.HTTPError, requests.exceptions.RequestException) as e:
             sys.exit()
@@ -64,7 +58,7 @@ class Category():
         #payload URLs field needs to include 1 URL to be  valid
         try:
             cs_cat = requests.request("POST", url=self.category_post_url, headers=self.headers, data=json.dumps(self.payload))
-            cs_cat_results = str(cs_cat.status_code)
+            str(cs_cat.status_code)
             cs_cat_result = cs_cat.json()
             category_id = cs_cat_result['id']
             return category_id

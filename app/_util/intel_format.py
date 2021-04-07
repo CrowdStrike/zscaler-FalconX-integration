@@ -1,15 +1,7 @@
 from app._util.logger import Logger
-from datetime import datetime
-from datetime import timedelta
 from requests.exceptions import HTTPError
-from urllib.parse import urlparse
 import requests
-import json
-import logging
-import sys
-import urllib
 import re
-import time
 
 class IntelFormat():
     def __init__(self):
