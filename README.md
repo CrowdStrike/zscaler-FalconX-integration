@@ -32,7 +32,7 @@ python main.py
 # Project Reference
 ![Integration architecture](zscalerintegration.jpg)
 ## app/
-- integration.py
+- [integration.py](app/integration.py)
   - called by main module - provides flow control.
 ----
 
