@@ -1,17 +1,19 @@
 import logging
 import config as config
 
-#This class provides logging utility throughout the app
-#Initialize the class with logger = Logger()
-#Use functions to log at desired level
-    #Example:           logger.info("Message")
-    #Log File Result:   2021-03-29 18:03:09,154   47631 INFO   Message.
-    
+# This class provides logging utility throughout the app
+# Initialize the class with logger = Logger()
+# Use functions to log at desired level
+#Example:           logger.info("Message")
+# Log File Result:   2021-03-29 18:03:09,154   47631 INFO   Message.
+
+
 class Logger():
     logger = logging.getLogger()
     logging_level = config.logging_level
     logger.setLevel(logging_level)
-    logging.basicConfig(filename='./cs_zscaler_intel_log.log' , format='%(asctime)s   %(process)d %(levelname)s   %(message)s')
+    logging.basicConfig(filename='./cs_zscaler_intel_log.log',
+                        format='%(asctime)s   %(process)d %(levelname)s   %(message)s')
     ref_file = './cs_zscaler_intel_log_tracker.json'
 
     def info(self, message):
@@ -25,12 +27,10 @@ class Logger():
 
     def error(self, message):
         content = str(message)
-        logging.error(content)   
-    
+        logging.error(content)
 
 
-
-#deprecated logging statements for reference
+# deprecated logging statements for reference
 
 # ('info', 'CrowdStrike base URL: ' + str(self.base_url))
 # ('info', 'API endpoint: ' + auth_URL)
@@ -51,7 +51,7 @@ class Logger():
 # ('info', 'Total number of active CrowdStrike URLs retrieved was: ' + str(num_cs_urls))
 # ('info', 'Total number of deleted CrowdStrike URLs retrieved was: ' + str(num_del_urls))
 # ('info', 'Total number of current Zscaler URLs in CrowdStrike Category: ' + str(len(self.current_zs_urls)))
-# ('info', 'The number of retrieved CrowdStrike URLs appears to currently be under the safe quota amount.') 
+# ('info', 'The number of retrieved CrowdStrike URLs appears to currently be under the safe quota amount.')
 # ('info', 'The number of URls that need to be removed from Zscaler: ' + str(url_remove_num))
 # ('info', 'Removed CrowdStrike URL: ' + str(del_url))
 # ('info', 'There are no CrowdStrike URLs that need to be removed at this time.')

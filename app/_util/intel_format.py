@@ -3,6 +3,7 @@ from requests.exceptions import HTTPError
 import requests
 import re
 
+
 class IntelFormat():
     def __init__(self):
         self.excl_regex = r"^url_file:"
@@ -13,15 +14,14 @@ class IntelFormat():
 
     def format_intel(self, intel):
 
-
         for indicators in intel:
-            #identifies file based URLs 
+            # identifies file based URLs
             form_check = re.search(self.excl_regex, indicators)
             if form_check == None:
-                #removes 'http' & 'https' from URLs per Zscaler requirements
+                # removes 'http' & 'https' from URLs per Zscaler requirements
                 matches = re.search(self.http_regex, indicators)
                 match = matches.group()
-                #trim the port
+                # trim the port
                 sep = ":"
                 match = match.split(sep, 1)[0]
                 encoded_string = match.encode("ascii", "ignore")
@@ -29,7 +29,7 @@ class IntelFormat():
                 self.pre_lookup_url_validator(match)
                 self.cs_indicators.append(match)
             else:
-                #skips file formated URLs
+                # skips file formated URLs
                 pass
         return self.cs_indicators
 
@@ -43,7 +43,6 @@ class IntelFormat():
             self.lookup_ready.append(url)
         else:
             self.write_rejected(url)
-    
+
     def get_lookup_ready_urls(self):
         return self.lookup_ready
-

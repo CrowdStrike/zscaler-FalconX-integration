@@ -5,6 +5,7 @@ import requests
 import json
 import time
 
+
 class LookUp():
     def __init__(self, auth):
         self.auth = auth
@@ -41,28 +42,28 @@ class LookUp():
                 db_categorized_urls.append(url['url'])
 
         ingestable_model = {
-            'urls' : urls,
-            "dbCategorizedUrls" : db_categorized_urls
+            'urls': urls,
+            "dbCategorizedUrls": db_categorized_urls
         }
         return ingestable_model
-        
 
     def url_look_up(self, url_list):
         payload = url_list
-        response = requests.request("POST", self.lookup_url, headers=self.headers, data=json.dumps(payload))
+        response = requests.request(
+            "POST", self.lookup_url, headers=self.headers, data=json.dumps(payload))
         if response.status_code == 401:
-            self.logger.error("401 at " + self.lookup_url + "; Attempting to reauthenticate")
+            self.logger.error("401 at " + self.lookup_url +
+                              "; Attempting to reauthenticate")
             self.auth_refresh()
             return self.url_look_up(url_list)
         else:
             classified_urls_json = response.json()
 
-            #URL Look Up rate limit exceeded
-            #This shouldn't happen unless debugging
+            # URL Look Up rate limit exceeded
+            # This shouldn't happen unless debugging
             if 'Retry-After' in classified_urls_json:
                 return classified_urls_json
-                
+
             time.sleep(1)
             ingestable_model = self.url_model(classified_urls_json)
             return ingestable_model
-
