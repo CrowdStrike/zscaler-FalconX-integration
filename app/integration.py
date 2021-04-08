@@ -7,6 +7,7 @@ from app.zscaler.api.lookup import LookUp
 from app.zscaler.api.intel_push import IntelPush
 import config as config
 import time
+import datetime
 
 
 class Integration():
