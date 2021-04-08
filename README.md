@@ -1,6 +1,6 @@
 # zscaler-FalconX-integration
 
-## Overview:
+## Overview
 CrowdStrike’s Falcon X threat intelligence and Falcon Endpoint Protection device telemetry data can be easily shared with Zscaler Zero Trust Exchange for seamless usage when integrations are activated to provide stronger protection and increased visibility.
 
 While running, the integration maintains a collection of malicious URLs from CrowdStrike’s Intel platform by submitting new URLs and removing false positives, or deleted indicators, from the Zscaler platform’s URL block list feature. The integration is rate limited by Zscaler’s URL look-up API. Only 40,000 URLs can be queried per hour, so the integration was designed assuming that the service bottle necks at this particular phase of execution. The result is a slow and steady Extract-Transform-Load loop built for stability. 
