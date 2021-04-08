@@ -31,9 +31,10 @@ python main.py
 
 # Project Reference
 ![Integration architecture](zscalerintegration.jpg)
-# app/
-- integration.py
+## app/
+- [integration.py](app/integration.py)
   - called by main module - provides flow control.
+----
 
 ## crowdstrike/
 - [crowdstrike_auth.py](app/crowdstrike/crowdstrike_auth.py)
@@ -56,6 +57,7 @@ python main.py
 - queuing/*
     - contains intermediary URL lists - during runtime, files are populated with sets of malicious URLs pending transfer.
 ----
+
 ## _util/
 - [intel_format.py](app/_util/intel_format.py)
   - Contains utility functions for parsing and formatting malicious URLs for Zscaler ingestion.
