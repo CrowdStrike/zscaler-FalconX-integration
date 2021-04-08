@@ -13,7 +13,7 @@ class IntelPull():
         self.auth = auth
         self.token = auth.get_token()
         self.base_url = config.cs_base_url
-        self.limit = config.cs_indicators_limit
+        self.limit = 10000
         self.indicators_remaining = 10000
         self.payload = {}
         self.indicators_api = "/intel/queries/indicators/v1"

@@ -8,7 +8,6 @@ logging_level = 'DEBUG'
 cs_clientID = ""
 cs_secret = ""
 cs_base_url = "https://api.crowdstrike.com"
-cs_indicators_limit = 10000  # Malcious URLs per request; Default = 10000
 
 # ZScaler configurations
 zs_hostname = 'https://admin.zscalertwo.net'
