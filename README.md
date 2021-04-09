@@ -7,9 +7,9 @@ While running, the integration maintains a collection of malicious URLs from Cro
 
 # Getting Started
 ## Zscaler URL Category
-First, in the Zscaler platform, navigate to https://admin.zscalertwo.net/#administration/url-categories, and then add a new URL category with the name 'CrowdStrike Malicious URLs - High' (1) in the URL Super Category, 'User-Defined' (2). The new category will not be accepted without any entries, so enter an arbitrary URL (3), and then save (4).
+First, in the Zscaler platform, navigate to https://admin.zscalertwo.net/#administration/url-categories, and then add a new URL category with the name 'CrowdStrike Malicious URLs - High', in the URL Super Category select 'User-Defined'. The new category will not be accepted without any entries, so enter an arbitrary URL, and then save.
 
-![Adding a new Zscaler URL category](zscalercategory.png)
+[Zscaler URL Category documentation](https://help.zscaler.com/zia/adding-custom-url-categories)
 
 ## Download
 ```bash
