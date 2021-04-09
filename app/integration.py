@@ -73,14 +73,21 @@ class Integration():
                 wait_time = 3660 - (now - self.last_hour)
                 wait_time_str = str(datetime.timedelta(seconds=wait_time))
                 self.logger.info(
-                    "Finished removing deleted URLs; Sleeping for " + wait_time_str + " seconds.")
+                    "Finished removing deleted URLs; Activating changes.")
 
+                self.zs_ingest.activate_changes()
+                self.logger.info(
+                    "Activated Changes; Sleeping for " + wait_time_str + " seconds.")
                 time.sleep(wait_time)  # idle for remainder of hour; rate-limit resets
 
+                
+                    
                 self.logger.info(
                     "Waking up; Resetting rate limit monitoring variables and continuing execution.")
                 self.last_hour = time.time()  # reset last hour
                 self.rate_limit_monitor = 0  # reset rate limit
+
+
 
             # add length of eligible urls to rate limit monitor
             number_new_urls = len(chunk)

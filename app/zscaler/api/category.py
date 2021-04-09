@@ -62,14 +62,15 @@ class Category():
         try:
             cs_cat = requests.request(
                 "POST", url=self.category_post_url, headers=self.headers, data=json.dumps(self.payload))
-            str(cs_cat.status_code)
+            cs_cat_results = str(cs_cat.status_code)
             cs_cat_result = cs_cat.json()
             category_id = cs_cat_result['id']
             return category_id
+
         except (requests.exceptions.Timeout, requests.exceptions.TooManyRedirects, requests.exceptions.HTTPError, requests.exceptions.RequestException) as e:
-            CIB_Logger().logging_data(
-                'error', 'Error contacting Zscaler URL category API: ' + str(e))
-            CIB_Logger().logging_data('error', 'System will now exit')
+            self.logger.error(
+                'Error contacting Zscaler URL category API: ' + str(e))
+            self.logger.error('System will now exit')
             sys.exit()
 
     def write_intel_raw(self, intel, file):

@@ -17,6 +17,8 @@ class IntelPush:
             str(self.cat_id) + '?action=ADD_TO_LIST'
         self.push_deleted_url = self.hostname + '/api/v1/urlCategories/' + \
             str(self.cat_id) + '?action=REMOVE_FROM_LIST'
+        self.status_url = self.hostname + "/api/v1/status"
+        self.activate_url = self.hostname + "/api/v1/status/activate"
         self.headers = {
             'content-type': "application/json",
             'cache-control': "no-cache",
@@ -69,3 +71,19 @@ class IntelPush:
             self.push_deleted(urls)
         else:
             push_results = push_results.json()
+
+    def activate_changes(self):
+        self.logger.info('Committing changes to Zscaler.')
+        self.status_url = self.hostname + "/api/v1/status"
+        try:
+            status_resp = requests.request("GET", url = self.status_url, headers = self.headers)
+            self.logger.info("Current status of commits for Zscaler: " + str(status_resp))
+
+        except (requests.exceptions.Timeout, requests.exceptions.TooManyRedirects, requests.exceptions.HTTPError, requests.exceptions.RequestException) as e:
+            self.logger.error('Error checking Zscaler commit status: ' + str(e))
+            self.logger.error('System will now exit')
+            sys.exit()
+
+        
+        activate_resp = requests.request("POST", url = self.activate_url, headers = self.headers)
+        print (activate_resp.status_code)
