@@ -71,9 +71,9 @@ class Integration():
                 now = time.time()  # wait until hour since last reset
                 # 1 hour (3600s) - time since last hour (60s of wiggle room)
                 wait_time = 3660 - (now - self.last_hour)
-                wait_time = str(datetime.timedelta(seconds=wait_time))
+                wait_time_str = str(datetime.timedelta(seconds=wait_time))
                 self.logger.info(
-                    "Finished removing deleted URLs; Sleeping for " + wait_time + " seconds.")
+                    "Finished removing deleted URLs; Sleeping for " + wait_time_str + " seconds.")
 
                 time.sleep(wait_time)  # idle for remainder of hour; rate-limit resets
 
