@@ -1,7 +1,3 @@
-app/crowdstrike/queuing/intel_deleted.json
-app/crowdstrike/queuing/intel.json
-app/crowdstrike/queuing/rejected.txt
-app/zscaler/queuing/zscaler_urls.json
 .vscode/
 
 # Byte-compiled / optimized / DLL files
