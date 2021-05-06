@@ -42,11 +42,7 @@ class Category():
             result = 'No Category Matches'
             category_id = 'none found'
             custom_urls = 'none found'
-<<<<<<< HEAD
             return category_id
-=======
-            return result, category_id, custom_urls
->>>>>>> be67bc5bc89898b875fc5ed5cda7fc4235a038cd
         else:
             for cat in custom_cats:
                 if self.cat_name == cat['configuredName']:
