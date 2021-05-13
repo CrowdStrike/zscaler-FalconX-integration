@@ -4,7 +4,7 @@ import config as config
 import requests
 import json
 import time
-
+import sys
 
 class LookUp():
     def __init__(self, auth):
@@ -49,7 +49,7 @@ class LookUp():
                     db_categorized_urls.append(url['url'])
             except:
                 e = sys.exc_info()[0]
-                logger.error(str(e))
+                self.logger.error(str(e))
                 pass
 
         ingestable_model = {

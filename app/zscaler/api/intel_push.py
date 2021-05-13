@@ -3,7 +3,7 @@ from requests.exceptions import HTTPError
 import config as config
 import requests
 import json
-
+import sys
 
 class IntelPush:
     def __init__(self, auth, cat_id):
