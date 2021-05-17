@@ -39,26 +39,20 @@ class Category():
         custom_cats = custom_url_cat.json()
 
         if len(custom_url_cat.json()) == 0:
-            result = 'No Category Matches'
             category_id = 'none found'
-            custom_urls = 'none found'
-            return result, category_id, custom_urls
+            return category_id
         else:
             for cat in custom_cats:
+                #if crowdstrike category exists, return its ID
                 if self.cat_name == cat['configuredName']:
-                    result = "Category Exists"
                     category_id = cat['id']
                     custom_urls = cat['urls']
                     self.write_intel_raw(custom_urls, "zscaler_urls.json")
-                    return result, category_id, custom_urls
-                else:
-                    result = 'No Category Matches'
-                    category_id = 'none found'
-                    custom_urls = 'none found'
-                    self.create_cs_cat()
+                    return category_id
+            #if crowdstrike category does not exist, create it
+            self.create_cs_cat()
 
     def create_cs_cat(self):
-        # payload URLs field needs to include 1 URL to be  valid
         try:
             cs_cat = requests.request(
                 "POST", url=self.category_post_url, headers=self.headers, data=json.dumps(self.payload))
