@@ -1,4 +1,8 @@
 .vscode/
+app/zscaler/queuing/zscaler_urls.json
+app/crowdstrike/queuing/intel.json
+app/crowdstrike/queuing/intel_deletes.json
+app/crowdstrike/queuing/rejected.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
