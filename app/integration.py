@@ -42,7 +42,7 @@ class Integration():
         self.cs_intel = IntelPull(self.cs_auth)  # CS intel controller init
         self.zs_cat = Category(self.zs_auth)  # category controller init
         # category check; returns CrowdStrike custom category ID
-        self.zs_cat_id = self.zs_cat.custom_category_check()
+        self.zs_cat_id = self.zs_cat.custom_category_check()[1]
         self.zs_lookup = LookUp(self.zs_auth)  # URL Lookup controller init
         # ZScaler ingest controller init
         self.zs_ingest = IntelPush(self.zs_auth, self.zs_cat_id)

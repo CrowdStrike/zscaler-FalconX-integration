@@ -38,8 +38,8 @@ def main():
             max_streak = killswitch.get_max_streak()  # get maximum fail streak
             # max - streak = failures until forced exit
             failures_remaining = max_streak - streak
-            logger.info("Error during runtime;" + str(streak) + " Failed run(s) in a row; " +
-                        str(failures_remaining) + " Failed runs until exit.")
+            logger.info("Error during runtime;" + streak + " Failed run(s) in a row; " +
+                        failures_remaining + " Failed runs until exit.")
             killswitch.fail()  # reaching this line implies a failed run; increment the fail streak
             # sleep for 5 seconds to avoid a rapid/excessive looping on failure
             time.sleep(5)

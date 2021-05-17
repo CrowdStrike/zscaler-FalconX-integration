@@ -4,7 +4,7 @@ import config as config
 import requests
 import json
 import time
-import sys
+
 
 class LookUp():
     def __init__(self, auth):
@@ -31,26 +31,15 @@ class LookUp():
     def url_model(self, classified_urls_json):
         urls = []
         db_categorized_urls = []
-        if type(classified_urls_json) is not list:
-            empty_model = {
-                'urls': [],
-                "dbCategorizedUrls": []
-            }
-            return empty_model
         for url in classified_urls_json:
-            try:
-                if url['urlClassificationsWithSecurityAlert']:
-                    pass
-                elif 'urlClassifications' not in url:
-                    urls.append(url['url'])
-                elif 'MISCELLANEOUS_OR_UNKNOWN' in url['urlClassifications']:
-                    urls.append(url['url'])
-                else:
-                    db_categorized_urls.append(url['url'])
-            except:
-                e = sys.exc_info()[0]
-                self.logger.error(str(e))
+            if url['urlClassificationsWithSecurityAlert']:
                 pass
+            elif 'urlClassifications' not in url:
+                urls.append(url['url'])
+            elif 'MISCELLANEOUS_OR_UNKNOWN' in url['urlClassifications']:
+                urls.append(url['url'])
+            else:
+                db_categorized_urls.append(url['url'])
 
         ingestable_model = {
             'urls': urls,
