@@ -1,2 +1,5 @@
-./dev/*
-./logs/*
+dev/*
+logs/*
+.vscode/*
+dev/*
+*__pycache__*
