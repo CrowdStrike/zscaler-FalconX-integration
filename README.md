@@ -51,3 +51,5 @@ python intelbridge -s "Your Falcon API secret" -p "Your zscaler ZIA Password" -k
 :fire: Is something going wrong? :fire:<br/>
 GitHub Issues are used to report bugs. Submit a ticket here:<br/>
 [https://github.com/CrowdStrike/zscaler-FalconX-integration/issues/new/choose](https://github.com/CrowdStrike/zscaler-FalconX-integration/issues/new/choose)
+
+**Be sure to include details from the most recent file in the ./log directory**

@@ -24,7 +24,7 @@ from indicators.indicators import get_indicators, prepare_indicators
 from zscaler.zscaler import look_up_indicators, push_indicators, save_changes, validate_category
 from auth.auth import cs_auth
 from auth.auth import zs_auth
-from util.util import convert
+from util.util import convert, next_hour
 
 
 class IntelBridge():
@@ -95,7 +95,9 @@ class IntelBridge():
         loop_delta = convert(end - start)
         total_delta = convert(end - self.start_time)
         logging.info(f"Finished loop {loop}! Time elapsed: {loop_delta} "
-                     f"Total run time: {total_delta}")
+                     f"Total run time: {total_delta}"
+                     f"Sleeping for 1 hour...Next update:{next_hour()}")
+        time.sleep(3600)
         return not del_switch, loop + 1
 
 

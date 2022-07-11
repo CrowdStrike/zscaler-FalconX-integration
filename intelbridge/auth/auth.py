@@ -8,6 +8,7 @@ import requests
 import time
 import json
 import argparse
+from util.util import log_http_error
 
 parser = argparse.ArgumentParser(
     description="FalconX-Zscaler-Intel-Bridge"
@@ -52,6 +53,7 @@ def cs_auth():
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
         logging.info(f"Error authenticating to Falcon API: {err}")
+        log_http_error(response)
         raise
     token = response.json()["access_token"]
     return token
@@ -87,6 +89,7 @@ def zs_auth():
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
         logging.info(f"Error authenticating to Zscaler API: {err}")
+        log_http_error(response)
         raise
     token = response.cookies['JSESSIONID']
     return token

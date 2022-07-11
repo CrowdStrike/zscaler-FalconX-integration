@@ -9,7 +9,7 @@ import sys
 import time
 import json
 from auth.auth import zs_auth
-from util.util import increment
+from util.util import increment, log_http_error
 
 
 config = configparser.ConfigParser()
@@ -39,6 +39,7 @@ def validate_category(token):
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
         logging.info(f"[Zscaler API] URL Category validation error: {err}")
+        log_http_error(response)
         raise
     url_categories = response.json()
     if len(url_categories) == 0:
@@ -72,6 +73,7 @@ def create_catagory(token):
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
         logging.info(f"[Zscaler API] URL Category creation error: {err}")
+        log_http_error(response)
         raise
     c = response.json()
     return {'id':c['id'], 'content':{'urls':c['urls'][1:], 'dbCategorizedUrls':c['dbCategorizedUrls']}}
@@ -133,6 +135,7 @@ def look_up_indicators(indicators, token):
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             logging.info(f"[Zscaler API] URL Lookup Error: {err}")
+            log_http_error(response)
             raise
         classified_chunk = response.json()
         modeled_chunk = model_chunk(classified_chunk)
@@ -189,6 +192,7 @@ def put_chunks(indicators, url, headers, progress):
             response.raise_for_status()
         except requests.exceptions.HTTPError as err:
             logging.info(f"[Zscaler API] Add new URLs error: {err}")
+            log_http_error(response)
             raise
         result = response.json()
     results.append(result)
@@ -210,6 +214,7 @@ def save_changes(token):
         status_response.raise_for_status()
     except requests.exceptions.HTTPError as err:
         logging.info(f"[Zscaler API] Get change status error: {err}")
+        log_http_error(response)
         raise
     status = status_response.json()
     logging.info(f"[Zscaler API] New change status: {json.dumps(status)}")
@@ -218,6 +223,7 @@ def save_changes(token):
         activate_response.raise_for_status()
     except requests.exceptions.HTTPError as err:
         logging.info(f"[Zscaler API] Activate Changes error: {err}")
+        log_http_error(response)
         raise
     activate = activate_response.json()
     logging.info(f"[Zscaler API] Changes activated: {json.dumps(activate)}")

@@ -4,7 +4,7 @@ Helper methods for intel bridge module
 """
 import logging
 import time
-
+from requests_toolbelt.utils import dump
 
 def start_log():
     """Utility method for configuring logger
@@ -60,3 +60,10 @@ def increment(p, len):
     p[1] = p[1] + 1
     p[0] = buffer(f"{p[3]} {p[1]}/{p[2]}", p[0], len)
     return p
+
+def next_hour():
+       return time.strftime("%I:%M:%p",time.localtime(time.time()+3600))
+
+def log_http_error(resp):
+    data = dump.dump_all(resp)
+    logging.info(("HTTP related failure:\n" + data.decode('utf-8')))

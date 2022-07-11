@@ -8,13 +8,14 @@ import logging
 import re
 import os
 from auth.auth import cs_auth
+from util.util import log_http_error
 
 
 config = configparser.ConfigParser()
 config.read('config.ini')
 cs_config = config['CROWDSTRIKE']
 cs_base_url = str(cs_config['base_url'])
-limit = int(cs_config['limit'])
+limit = int(cs_config['limit']) if int(cs_config['limit']) <= 20000 else 20000
 dir = os.path.dirname(os.path.realpath(__file__))
 new_indicators_data = f"{dir}/data_new"
 deleted_indicators_data = f"{dir}/data_deleted"
@@ -64,6 +65,7 @@ def request(headers, api_url, deleted):
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
         logging.info(f"[Falcon API] Error getting Indicators: {err}")
+        log_http_error(response)
         raise
     return response
 
@@ -87,7 +89,7 @@ def get_indicators(token, deleted):
                       f"'high'{'&include_deleted=false'if deleted else ''}")
             api_url = f"{cs_base_url}{route}{params}"
     response = request(headers, api_url, deleted)
-    check_headers(response.headers._store, deleted)
+    # check_headers(response.headers._store, deleted)
     indicators = response.json()['resources']
     x = response.json()
     logging.info(f"[Falcon API] responded with {len(indicators)} Indicators")
