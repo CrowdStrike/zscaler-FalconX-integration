@@ -29,7 +29,7 @@ pip install -r requirements.txt
 ```
 
 ## Configure
-Input your configurations in config.ini 
+Input your configurations in config.ini. Do not use quotes or ticks for any of these values.
 
 ```ini
 [CROWDSTRIKE]
@@ -45,6 +45,7 @@ With Python 3.7+ installed:
 ```bash
 python intelbridge -s "Your Falcon API secret" -p "Your zscaler ZIA Password" -k "Your zscaler API Key"
 ```
+note: CLI arguments DO require quotation marks. 
 
 # Support & Community Forums
 
