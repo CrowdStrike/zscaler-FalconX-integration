@@ -24,9 +24,9 @@ git clone https://github.com/CrowdStrike/zscaler-FalconX-integration.git
 cd zscaler-FalconX-integration
 ```
 
-## Install Dependencies with pip
+## Install Dependencies with pip3
 ```bash
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ## Configure
