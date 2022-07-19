@@ -31,8 +31,9 @@ def validate_category(token):
     """
     logging.info(f"Confirming URL category {zs_url_category} exists")
     url = f"{zs_hostname}/api/v1/urlCategories?customOnly=true"
-    headers = {'content-type': "application/json",
-               'cache-control': "no-cache",
+    headers = {'content-type': 'application/json',
+               'cache-control': 'no-cache',
+               'User-Agent' :'Zscaler-FalconX-Intel-Bridge-v2',
                'cookie': "JSESSIONID=" + str(token)}
     response = requests.get(url=url, headers=headers)
     try:
@@ -61,6 +62,7 @@ def create_catagory(token):
     url = f"{zs_hostname}/api/v1/urlCategories"
     headers = {'content-type': "application/json",
                'cache-control': "no-cache",
+               'User-Agent' :'Zscaler-FalconX-Intel-Bridge-v2',
                'cookie': "JSESSIONID=" + str(token)}
     payload = {
             "configuredName": zs_url_category,
@@ -157,6 +159,7 @@ def push_indicators(token, category, indicators, deleted):
     url = f"{zs_hostname}/api/v1/urlCategories/{category}?action={action}"
     headers = {'content-type': "application/json",
                'cache-control': "no-cache",
+               'User-Agent' :'Zscaler-FalconX-Intel-Bridge-v2',
                'cookie': "JSESSIONID=" + str(token)}
     progress = [0, 0, len(indicators), "Posting URLs in indicator chunk"]
     print(f"{'='*20 if deleted else '='*22}"
@@ -208,13 +211,14 @@ def save_changes(token):
     save_url = f"{zs_hostname}/api/v1/status/activate"
     headers = {'content-type': "application/json",
                'cache-control': "no-cache",
+               'User-Agent' :'Zscaler-FalconX-Intel-Bridge-v2',
                'cookie': "JSESSIONID=" + str(token)}
     status_response = requests.get(url=status_url, headers=headers)
     try:
         status_response.raise_for_status()
     except requests.exceptions.HTTPError as err:
         logging.info(f"[Zscaler API] Get change status error: {err}")
-        log_http_error(response)
+        log_http_error(status_response)
         raise
     status = status_response.json()
     logging.info(f"[Zscaler API] New change status: {json.dumps(status)}")
@@ -223,7 +227,7 @@ def save_changes(token):
         activate_response.raise_for_status()
     except requests.exceptions.HTTPError as err:
         logging.info(f"[Zscaler API] Activate Changes error: {err}")
-        log_http_error(response)
+        log_http_error(status_response)
         raise
     activate = activate_response.json()
     logging.info(f"[Zscaler API] Changes activated: {json.dumps(activate)}")

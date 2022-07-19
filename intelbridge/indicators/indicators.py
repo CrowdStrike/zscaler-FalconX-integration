@@ -77,7 +77,7 @@ def get_indicators(token, deleted):
     """
     del_filter = "deleted:true%2B" if deleted else ""
     headers = {"Authorization" : f"Bearer {str(token)}",
-               "User-Agent" :"Zscaler-FalconX-Intel-Bridge"}
+               "User-Agent" :"Zscaler-FalconX-Intel-Bridge-v2"}
     data_file = new_indicators_data if not deleted else new_indicators_data
     with open(data_file, 'r') as f:
         if False:#os.stat(data_file).st_size != 0:
