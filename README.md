@@ -5,9 +5,10 @@ This tool seemlessly integrates CrowdStrike's Falcon X Threat Intelligence with 
 During runtime, the integration maintains a custom URL category in zscaler ZIA. Left to run indefinitely and unsupervised, it will automatically keep the custom URL category populated with the newest Falcon X Indicators.
 
 # Getting Started
-## Product Requirements
+## Requirements
 - zscaler ZIA
 - CrowdStrike Falcon X
+- Python 3+ (Python 2 will not work due to string parsing incompatibilities)
 
 ## zscaler URL Category
 First, log into your ZIA tenant and then navigate to “Administration” -> “URL-Categories", and then add a new URL category with the name 'CrowdStrike Malicious URLs - High', in the URL Super Category select 'User-Defined'. The new category will not be accepted without any entries, so enter an arbitrary URL, and then save.
@@ -43,7 +44,7 @@ username=Your ZIA Username
 # Running the Integration
 With Python 3.7+ installed:
 ```bash
-python intelbridge -s "Your Falcon API secret" -p "Your zscaler ZIA Password" -k "Your zscaler API Key"
+python3 intelbridge -s 'Your Falcon API secret' -p 'Your zscaler ZIA Password' -k 'Your zscaler API Key'
 ```
 note: CLI arguments DO require quotation marks. 
 
