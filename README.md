@@ -11,7 +11,7 @@ During runtime, the integration maintains a custom URL category in zscaler ZIA. 
 - Python 3+ (Python 2 will not work due to string parsing incompatibilities)
 
 ## zscaler URL Category
-First, log into your ZIA tenant and then navigate to “Administration” -> “URL-Categories", and then add a new URL category with the name 'CrowdStrike Malicious URLs - High', in the URL Super Category select 'User-Defined'. The new category will not be accepted without any entries, so enter an arbitrary URL, and then save.
+First, log into your ZIA tenant and then navigate to “Administration” -> “URL-Categories", and then add a new URL category with the name 'CrowdStrike Malicious URLs - High', in the URL Super Category select 'User-Defined'. The new category will not be accepted without any entries, so enter an arbitrary URL (examplefakeurl123.com), and then save.
 
 [zscaler URL Category documentation](https://help.zscaler.com/zia/adding-custom-url-categories)
 
@@ -46,7 +46,7 @@ With Python 3.7+ installed:
 ```bash
 python3 intelbridge -s 'Your Falcon API secret' -p 'Your zscaler ZIA Password' -k 'Your zscaler API Key'
 ```
-note: CLI arguments DO require quotation marks. 
+note: CLI arguments DO require SINGLE quotes. 
 
 # Support & Community Forums
 

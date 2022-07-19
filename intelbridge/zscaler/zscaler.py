@@ -16,7 +16,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 zs_config = config['ZSCALER']
 zs_hostname = str(zs_config['hostname'])
-zs_url_category = "crowdstrike_malicious_urls_high"
+zs_url_category = "CrowdStrike Malicious URLs - High"
 
 def refresh_token():
     """Refreshes Zscaler API Auth token
