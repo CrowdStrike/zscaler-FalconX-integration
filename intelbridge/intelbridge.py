@@ -65,7 +65,8 @@ class IntelBridge():
         returns: N/A
         """
         # remove existing content
-        push_indicators(token, category, content, True)
+        if(len(content[0]['urls']) > 1):
+            push_indicators(token, category, content, True)
         # push new content
         push_indicators(token, category, ingestable, False)
         # activate
@@ -81,7 +82,7 @@ class IntelBridge():
         loop - Iteration number
         returns: switched del_switch and new iteration number
         """
-        logging.info(f"Starting Pull/Prepare/Push Loop #{loop} "
+        logging.info(f"Starting Pull/Prepare/Push Loop # {loop} "
                      f"With {'deleted' if del_switch else 'new'} indicators")
         del_switch = False
         category = validate_category(zs_token)
@@ -94,9 +95,9 @@ class IntelBridge():
         end = int(time.time())
         loop_delta = convert(end - start)
         total_delta = convert(end - self.start_time)
-        logging.info(f"Finished loop {loop}! Time elapsed: {loop_delta} "
-                     f"Total run time: {total_delta}"
-                     f"Sleeping for 1 hour...Next update:{next_hour()}")
+        logging.info(f"Finished loop {loop}! Time elapsed: {loop_delta};"
+                     f"Total run time: {total_delta};"
+                     f"Sleeping for 1 hour...Next update:{next_hour()}.")
         time.sleep(3600)
         return not del_switch, loop + 1
 
