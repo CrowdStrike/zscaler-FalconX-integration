@@ -38,7 +38,7 @@ client=Your Falcon API Client ID
 base_url=Your Falcon API Base URL (ex: https://api.crowdstrike.com)
 limit=Number of indicators to maintain (Default 10,000)
 [ZSCALER]
-hostname=Your zscaler Hostname
+hostname=Your zscaler Hostname (Hostname only requires the base URL (i.e. https://zsapi.zscalerthree.net))
 username=Your ZIA Username
 ```
 # Running the Integration
