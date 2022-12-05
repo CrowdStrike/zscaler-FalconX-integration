@@ -106,10 +106,10 @@ class IntelBridge():
         """Starts the main runtime loop (etl_loop)
         returns: N/A
         """
-        cs_token = cs_auth()
-        zs_token = zs_auth()
         del_switch = False
         loop = 1
         while(True):
+            cs_token = cs_auth()
+            zs_token = zs_auth()
             del_switch, loop = self.etl_loop(cs_token, zs_token, del_switch, loop)
                 
