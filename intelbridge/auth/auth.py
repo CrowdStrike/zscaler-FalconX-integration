@@ -7,56 +7,44 @@ import configparser
 import requests
 import time
 import json
-import argparse
 from util.util import log_http_error
+from falconpy import APIHarness
 
-parser = argparse.ArgumentParser(
-    description="FalconX-Zscaler-Intel-Bridge"
-)
-parser.add_argument(
-    '-s', '--secret',
-    help="Your Falcon API Client Secret", required=True
-)
-parser.add_argument(
-    '-k', '--key',
-    help='Your Zscaler ZIA API Key', required=True
-)
-parser.add_argument(
-    '-p', '--password',
-    help='Your Zscaler ZIA password', required=True
-)
 
 config = configparser.ConfigParser()
 config.read('config.ini')
-args = parser.parse_args()
 cs_config = config['CROWDSTRIKE']
 cs_client = str(cs_config['client'])
+cs_secret = str(cs_config['secret'])
 cs_base_url = str(cs_config['base_url'])
 zs_config = config['ZSCALER']
 zs_hostname = str(zs_config['hostname'])
 zs_username = str(zs_config['username'])
+zs_password = str(zs_config['password'])
+zs_api_key = str(zs_config['token'])
 
-cs_secret = args.secret
-zs_password = args.password
-zs_api_key = args.key
 
 def cs_auth():
     """Returns a new Falcon API Auth Token, hot off the press
     returns: Falcon API Auth token
     """
     logging.info(f"Authenticating client {cs_client} to Falcon API")
-    url = f"{cs_base_url}/oauth2/token"
-    data = f"client_id={cs_client}&client_secret={cs_secret}"
-    headers = {'content-type': 'application/x-www-form-urlencoded'}
-    response = requests.post(url=url, data=data, headers=headers)
-    try:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as err:
-        logging.info(f"Error authenticating to Falcon API: {err}")
-        log_http_error(response)
-        raise
-    token = response.json()["access_token"]
-    return token
+    # url = f"{cs_base_url}/oauth2/token"
+    # data = f"client_id={cs_client}&client_secret={cs_secret}"
+    # headers = {'content-type': 'application/x-www-form-urlencoded'}
+    # response = requests.post(url=url, data=data, headers=headers)
+    # try:
+    #     response.raise_for_status()
+    # except requests.exceptions.HTTPError as err:
+    #     logging.info(f"Error authenticating to Falcon API: {err}")
+    #     log_http_error(response)
+    #     raise
+    # token = response.json()["access_token"]
+
+    falcon = APIHarness(client_id=cs_client, client_secret=cs_secret,
+                        base_url=cs_base_url)
+
+    return falcon
 
 def obfuscateApiKey(now):
     """Helper function for Zscaler's fancy auth method

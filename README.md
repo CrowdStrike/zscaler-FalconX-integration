@@ -35,18 +35,20 @@ Input your configurations in config.ini. Do not use quotes or ticks for any of t
 ```ini
 [CROWDSTRIKE]
 client=Your Falcon API Client ID
+secret=Your Falcon API Client Secret
 base_url=Your Falcon API Base URL (ex: https://api.crowdstrike.com)
 limit=Number of indicators to maintain (Default 10,000)
 [ZSCALER]
 hostname=Your zscaler Hostname (Hostname only requires the base URL (i.e. https://zsapi.zscalerthree.net))
 username=Your ZIA Username
+password=Your ZIA Passsword
+token=Your ZIA API token
 ```
 # Running the Integration
 With Python 3.7+ installed:
 ```bash
-python3 intelbridge -s 'Your Falcon API secret' -p 'Your zscaler ZIA Password' -k 'Your zscaler API Key'
+python3 intelbridge
 ```
-note: CLI arguments DO require SINGLE quotes. 
 
 # Support & Community Forums
 

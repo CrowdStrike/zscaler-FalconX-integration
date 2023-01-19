@@ -10,7 +10,6 @@ import os
 from auth.auth import cs_auth
 from util.util import log_http_error
 
-
 config = configparser.ConfigParser()
 config.read('config.ini')
 cs_config = config['CROWDSTRIKE']
@@ -69,29 +68,20 @@ def request(headers, api_url, deleted):
         raise
     return response
 
-def get_indicators(token, deleted):
+def get_indicators(falcon, deleted):
     """Builds Falcon API HTTP request and returns new indicators
     token - Falcon API Auth token
     deleted - boolean for deleted or new indicators
     returns: unformatted list of indicators
     """
-    del_filter = "deleted:true%2B" if deleted else ""
-    headers = {"Authorization" : f"Bearer {str(token)}",
-               "User-Agent" :"Zscaler-FalconX-Intel-Bridge-v2"}
-    data_file = new_indicators_data if not deleted else new_indicators_data
-    with open(data_file, 'r') as f:
-        if False:#os.stat(data_file).st_size != 0:
-            api_url = f.readlines()[-1]
-        else:
-            route = "/intel/queries/indicators/v1"
-            params = (f"?limit={str(limit)}&sort=published_date|desc&filter={del_filter}" 
-                       "type:'url'%2Bmalicious_confidence:" 
-                      f"'high'{'&include_deleted=false'if deleted else ''}")
-            api_url = f"{cs_base_url}{route}{params}"
-    response = request(headers, api_url, deleted)
+    del_filter = "deleted:true+" if deleted else ""
+    response = falcon.command("QueryIntelIndicatorIds", limit=limit, sort="published_date|desc",
+                                filter=f"{del_filter}type:'url'+malicious_confidence:'high'",
+                                include_deleted=deleted)
+    
+
     # check_headers(response.headers._store, deleted)
-    indicators = response.json()['resources']
-    x = response.json()
+    indicators = response["body"]['resources']
     logging.info(f"[Falcon API] responded with {len(indicators)} Indicators")
     return indicators
 
@@ -140,5 +130,6 @@ def prepare_indicators(indicators):
         prepared = filter(prepared, i)
     logging.info(f"Successfully prepared {len(prepared)} Indicators for Zscaler API")
     return prepared
+
 
 

@@ -1,2 +1,8 @@
+certifi==2022.9.24
+chardet==4.0.0
+charset-normalizer==2.1.1
+crowdstrike-falconpy==1.2.6
+idna==2.10
 requests==2.25.1
-requests_toolbelt==0.9.1
+requests-toolbelt==0.9.1
+urllib3==1.26.12
