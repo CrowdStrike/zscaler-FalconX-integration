@@ -20,13 +20,18 @@ Main object in module; Handles intel bridge initialization and execution
 """
 import logging
 import time
-from indicators.indicators import get_indicators, prepare_indicators
+import configparser
+import sys
+from indicators.indicators import get_indicators, prepare_indicators #, write_data
 from zscaler.zscaler import look_up_indicators, push_indicators, save_changes, validate_category
 from auth.auth import cs_auth
 from auth.auth import zs_auth
 from util.util import convert, next_hour
 
-
+config = configparser.ConfigParser()
+config.read('config.ini')
+chron_config = config['CHRON']
+chron = int(chron_config['disable_loop'])
 class IntelBridge():
     def __init__(self):
         """Initializes the class and saves start time
@@ -60,15 +65,20 @@ class IntelBridge():
         token - Zscaler API Auth token
         category - Name of Zscaler custom URL category from config.ini
         content - Current list of URLs to be removed
-        ingestable - Indicator lsit formatted for Zscaler API ingestion
+        ingestable - Indicator list formatted for Zscaler API ingestion
         deleted - Boolean for pulling new or deleted indicators
         returns: N/A
         """
-        # remove existing content
-        # if(len(content[0]['urls']) > 1):
-        #     push_indicators(token, category, content, deleted)
+        #remove last batch
+        if content['urls'] and len(content['urls']) > 0:
+            logging.info(f"""[Zscaler API] Safely removing previous indicators;
+                        [!!!] You are still protected during this phase;
+                        indicator refresh won't take effect until new indicators are pushed
+                        and changes are activated!""")
+            push_indicators(token, category, content, True)
         # push new content
-        push_indicators(token, category, ingestable, deleted)
+        logging.info(f"[Zscaler API] Pushing new indicators")
+        push_indicators(token, category, ingestable, False)
         # activate
         save_changes(token)
         return
@@ -79,27 +89,33 @@ class IntelBridge():
         zs_token - Zscaler API Auth token
         category - Name of Zscaler custom URL category from config.ini
         deleted - Boolean for pulling new or deleted indicators
-        loop - Iteration number
+        loop - Iteration numberå
         returns: switched deleted and new iteration number
         """
         logging.info(f"Starting Pull/Prepare/Push Loop # {loop} "
                      f"With {'deleted' if deleted else 'new'} indicators")
+        if(chron == 1):
+            logging.info("Looping Disabled! Exiting after this run.")
         category = validate_category(zs_token)
         category_name = category['id']
-        content = [category['content']]
+        content = category['content']
         start = int(time.time())
         indicators = self.pull(falcon, deleted)
         ingestable = self.prepare(zs_token, indicators)
+        # write_data(ingestable, deleted)
         self.update(zs_token, content, category_name, ingestable, deleted)
         end = int(time.time())
         loop_delta = convert(end - start)
         total_delta = convert(end - self.start_time)
+
+        if(chron == 1):
+            sys.exit(f"Looping Disabled! Intel Bridge completed. Time elapsed: {loop_delta}")
+
         logging.info(f"Finished loop {loop}! Time elapsed: {loop_delta};\n"
                      f"Total run time: {total_delta};\n"
-                     f"Indicators {'pushed' if not deleted else 'removed'}: {len(ingestable)};\n"
-                     f"Sleeping for 1 hour...Next update:{next_hour()}.\n")
-        deleted = not deleted
-        time.sleep(3600)
+                     f"Indicators {'pushed' if not deleted else 'removed'}: {len(ingestable['urls'])};\n"
+                     f"Sleeping for 12 hours...Next update:{next_hour()}.\n")
+        time.sleep(60*60*12)
         return deleted, loop + 1
 
 

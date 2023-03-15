@@ -35,6 +35,11 @@ def convert(seconds):
     seconds %= 60
     return "%d:%02d:%02d" % (hour, minutes, seconds)
 
+def listSplit(srcList, subLists=1):
+    length = len(srcList)
+    return [ srcList[i*length // subLists: (i+1)*length // subLists] 
+             for i in range(subLists) ]
+
 def buffer(msg, progress, len):
     """Utility method for updating progress bar
     msg - message to print
@@ -62,7 +67,7 @@ def increment(p, len):
     return p
 
 def next_hour():
-       return time.strftime("%I:%M:%p",time.localtime(time.time()+3600))
+       return time.strftime("%I:%M:%p",time.localtime(time.time()+43200))
 
 def log_http_error(resp):
     data = dump.dump_all(resp)

@@ -7,14 +7,16 @@ import requests
 import logging
 import re
 import os
+import time
 from auth.auth import cs_auth
 from util.util import log_http_error
-
+import datetime
+import urllib
 config = configparser.ConfigParser()
 config.read('config.ini')
 cs_config = config['CROWDSTRIKE']
 cs_base_url = str(cs_config['base_url'])
-limit = int(cs_config['limit']) if int(cs_config['limit']) <= 20000 else 20000
+limit = int(cs_config['limit']) if int(cs_config['limit']) <= 275000 else 275000
 dir = os.path.dirname(os.path.realpath(__file__))
 new_indicators_data = f"{dir}/data_new"
 deleted_indicators_data = f"{dir}/data_deleted"
@@ -32,6 +34,7 @@ def write_data(entry, deleted):
     returns: N/A
     """
     data_file = new_indicators_data if not deleted else deleted_indicators_data
+    data_file = data_file + "_" + time.strftime("%Y-%m-%d-%H_%M_%S", time.gmtime())
     f = open(data_file, 'w')
     f.write(f"{entry}")
     f.close()
@@ -74,16 +77,16 @@ def get_indicators(falcon, deleted):
     deleted - boolean for deleted or new indicators
     returns: unformatted list of indicators
     """
-    del_filter = "deleted:true+" if deleted else ""
-    response = falcon.command("QueryIntelIndicatorIds", limit=limit, sort="published_date|desc",
-                                filter=f"{del_filter}type:'url'+malicious_confidence:'high'",
-                                include_deleted=deleted)
+    # del_filter = "deleted:true+" if deleted else ""
+    # response = falcon.command("QueryIntelIndicatorIds", limit=limit, sort="published_date|desc",
+    #                             filter=f"type:'url'+malicious_confidence:'high'",
+    #                             include_deleted=deleted)
     
 
-    # check_headers(response.headers._store, deleted)
-    indicators = response["body"]['resources']
-    logging.info(f"[Falcon API] responded with {len(indicators)} Indicators")
-    return indicators
+    # # check_headers(response.headers._store, deleted)
+    # indicators = response["body"]['resources']
+    # logging.info(f"[Falcon API] responded with {len(indicators)} Indicators")
+    return get_all_indicators(falcon)
 
 def filter(prepared, i):
     """Helper function for prepare_indicators,
@@ -133,3 +136,56 @@ def prepare_indicators(indicators):
 
 
 
+def get_all_indicators(falcon):
+        # Calculate our current timestamp in seconds (%s),
+    # we will use this value for our _marker timestamp.
+    current_page = datetime.datetime.now().timestamp()
+    # List to hold the indicators retrieved
+    indicators_list = []
+    # The maximum number of records to return from the QueryIndicatorEntities operation. (1-5000)
+    haul = 5000
+    # Sort for our results. We will sort ascending using our _marker timestamp.
+    SORT = "_marker.desc"
+    # Set total to one (1) so our initial loop starts. This will get reset by the API result.
+    total = 1
+    # Start retrieving indicators until our total is zero (0).
+    while len(indicators_list) < limit:
+        # Retrieve a batch of indicators passing in our marker timestamp and limit
+        returned = falcon.command("QueryIntelIndicatorIds", limit=haul, sort=SORT,
+                                filter=f"_marker:<='{current_page}'+type:'url'+malicious_confidence:'high'")
+        if returned["status_code"] == 200:
+            # Retrieve the pagination detail for this result
+            page = returned["body"]["meta"]["pagination"]
+            # Based upon the timestamp within our _marker (first 10 characters),
+            # a total number of available indicators is shown in the 'total' key.
+            # This value will be reduced by our position from this timestamp as
+            # indicated by the unique string appended to the timestamp, so as our
+            # loop progresses, the total remaining will decrement. Due to the 
+            # large number of indicators created per minute, this number will also
+            # grow slightly while the loop progresses as these new indicators are 
+            # appended to the end of the resultset we are working with.
+            total = page["total"]
+            # Extend our indicators list by adding in the new records retrieved
+            indicators_list.extend(returned["body"]["resources"])
+            # Set our _marker to be the last one returned in our list,
+            # we will use this to grab the next page of results
+            current_page = urllib.parse.unquote(returned['headers']['Next-Page']).split("+")[2].split("'")[1][:10]
+
+            # Display our running progress
+            logging.info(f"Retrieved: {len(indicators_list)}, Remaining: {total}, Marker: {current_page}")
+        else:
+            # Retrieve all errors returned from the API
+            errors = returned["body"]["errors"]
+            # Tell the loop to stop processing
+            total = 0
+            # Display each error returned
+            for err in errors:
+                # Error code
+                ecode = err["code"]
+                # Error message
+                emsg = err["message"]
+                logging.info(f"[{ecode}] {emsg}")
+
+    # Display the grand total of indicators retrieved
+    logging.info(f"Total indicators retrieved: {len(indicators_list)}")
+    return indicators_list
