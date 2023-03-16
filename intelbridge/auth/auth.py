@@ -42,7 +42,7 @@ def cs_auth():
     # token = response.json()["access_token"]
 
     falcon = APIHarness(client_id=cs_client, client_secret=cs_secret,
-                        base_url=cs_base_url)
+                        base_url=cs_base_url, user_agent="zscaler-falcon-intel-bridge-v2.2")
 
     return falcon
 

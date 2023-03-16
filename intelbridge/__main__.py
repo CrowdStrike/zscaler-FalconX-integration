@@ -13,7 +13,7 @@ def main():
     returns: N/A
     """
     start_log()
-    logging.info("Falcon X Zscaler Intel Bridge main routine starting...")
+    logging.info("Intel Bridge main routine starting...")
     intelbridge = IntelBridge()
     intelbridge.start()
     return

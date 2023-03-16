@@ -8,15 +8,16 @@ import requests
 import sys
 import time
 import json
+import math
 from auth.auth import zs_auth
-from util.util import increment, log_http_error
+from util.util import increment, log_http_error, listSplit
 
 
 config = configparser.ConfigParser()
 config.read('config.ini')
 zs_config = config['ZSCALER']
 zs_hostname = str(zs_config['hostname'])
-zs_url_category = "CrowdStrike Malicious URLs - High"
+zs_url_category = "CrowdStrike"
 
 def refresh_token():
     """Refreshes Zscaler API Auth token
@@ -65,12 +66,13 @@ def create_catagory(token):
                'User-Agent' :'Zscaler-FalconX-Intel-Bridge-v2',
                'cookie': "JSESSIONID=" + str(token)}
     payload = {
+            "id": 0,
             "configuredName": zs_url_category,
             "customCategory": "true",
             "superCategory": "USER_DEFINED",
-            "urls": ["mine.ppxxmr.com:5555"]
+            "urls": ["mine.ppxxmr.com"]
         }
-    response = requests.post(url=url, headers=headers, data=payload)
+    response = requests.post(url=url, headers=headers, data=json.dumps(payload))
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
@@ -112,7 +114,7 @@ def model_chunk(chunk):
             logging.info(str(e))
             pass
     modeled_chunk = {'urls': modeled_urls,
-                     'dbCategorizedUrls': categorized}
+                     }
     return modeled_chunk
 
 def look_up_indicators(indicators, token):
@@ -122,7 +124,7 @@ def look_up_indicators(indicators, token):
     returns: list of indicators ready for ingestion
     """
     logging.info(f"[Zscaler API] Beginning URL look up loop")
-    ingestable = []
+    ingestable = {'urls':[]}
     url =  f"{zs_hostname}/api/v1/urlLookup"
     headers = {'content-type': "application/json",
                'cache-control': "no-cache",
@@ -131,18 +133,39 @@ def look_up_indicators(indicators, token):
     print(f"{'='*20}Zscaler API URL Lookup{'='*20}")
     progress = [0, 0, len(chunks), "Looking up URLs in indicator chunk"]
     for chunk in chunks:
-        progress = increment(progress, len(chunk))
-        response = requests.post(url=url, headers=headers, data=json.dumps(chunk))
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            logging.info(f"[Zscaler API] URL Lookup Error: {err}")
-            log_http_error(response)
-            raise
-        classified_chunk = response.json()
-        modeled_chunk = model_chunk(classified_chunk)
-        ingestable.append(modeled_chunk)
-        time.sleep(1)
+        success  = False
+        while not success:
+            response = requests.post(url=url, headers=headers, data=json.dumps(chunk))
+            if response.status_code == 429:
+                r = int(response.headers._store['retry-after'][1])
+                logging.info(f"[Zscaler API] Rate limit reached: Sleeping for {r} seconds.")
+                time.sleep(r+5)
+                continue
+            if response.status_code == 409:
+                logging.info(f"[Zscaler API] 409 Unknown Error: Sleeping for 10 and retrying 10 seconds.")
+                time.sleep(10)
+                continue
+            if response.status_code == 401:
+                logging.info(f"[Zscaler API] 401 Token Expired: Renewing auth and retrying.")
+                token = zs_auth()
+                headers["cookie"] = "JSESSIONID=" + str(token)
+                continue
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as err:
+                logging.info(f"[Zscaler API] URL Lookup Error: {err}")
+                log_http_error(response)
+                raise
+            except requests.exceptions.ConnectionError as err:
+                logging.info(f"[Zscaler API] Connection refused error: {err}\nSleeping for 2 minutes.")
+                time.sleep(120)
+                continue
+            success = True
+            classified_chunk = response.json()
+            modeled_chunk = model_chunk(classified_chunk)
+            ingestable['urls'] += modeled_chunk['urls']
+            progress = increment(progress, len(chunk))
+            time.sleep(1)
     print(f"{'='*29}DONE{'='*29}")
     return ingestable
 
@@ -154,7 +177,6 @@ def push_indicators(token, category, indicators, deleted):
     deleted - boolean for new or deleted indicators
     returns: results of push
     """
-    logging.info(f"[Zscaler API] Posting {'deleted' if deleted else ''} Indicators")
     action = "ADD_TO_LIST" if not deleted else "REMOVE_FROM_LIST"
     url = f"{zs_hostname}/api/v1/urlCategories/{category}?action={action}"
     headers = {'content-type': "application/json",
@@ -178,26 +200,52 @@ def put_chunks(indicators, url, headers, progress):
     returns: results of push
     """
     results = []
-    for chunk in indicators:
-        if not chunk['urls'] and not chunk['dbCategorizedUrls']:
-            progress[0] = progress[0] + 1
-            progress[1] = progress[1] + 1
-            continue
-        progress = increment(progress, len(chunk['urls']))
-        payload = {"customCategory": "true",
-                "superCategory": "USER_DEFINED",
-                "urls": chunk['urls'],
-                "dbCategorizedUrls": chunk['dbCategorizedUrls'],
-                "configuredName": zs_url_category
-        }
-        response = requests.put(url=url,headers=headers, data=json.dumps(payload))
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            logging.info(f"[Zscaler API] Add new URLs error: {err}")
-            log_http_error(response)
-            raise
-        result = response.json()
+    indicators = indicators['urls']
+    partitions = math.ceil(len(indicators)/5000)
+    partitioned_indicators = listSplit(indicators, partitions)
+    for chunk in partitioned_indicators:
+        success  = False
+        # chunk = {'urls': chunk}
+        # if not chunk['urls'] and not chunk['dbCategorizedUrls']:
+        #         progress[0] = progress[0] + 1
+        #         progress[1] = progress[1] + 1
+        #         continue
+        while not success:
+            payload = {"customCategory": "true",
+                    "superCategory": "USER_DEFINED",
+                    "urls": chunk,
+                    #"dbCategorizedUrls": chunk['dbCategorizedUrls'],
+                    "configuredName": zs_url_category
+            }
+            response = requests.put(url=url,headers=headers, data=json.dumps(payload))
+            if response.status_code == 429:
+                r = int(response.headers._store['retry-after'][1])
+                logging.info(f"[Zscaler API] Rate limit reached: Sleeping for {r} seconds.")
+                time.sleep(r+5)
+                continue 
+            if response.status_code == 409:
+                logging.info(f"[Zscaler API] 409 Unknown Error: Sleeping for 10 and retrying 10 seconds.")
+                time.sleep(10)
+                continue
+            if response.status_code == 401:
+                logging.info(f"[Zscaler API] 401 Token Expired: Renewing auth and retrying.")
+                token = zs_auth()
+                headers["cookie"] = "JSESSIONID=" + str(token)
+                continue
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as err:
+                logging.info(f"[Zscaler API] Add new URLs error: {err}")
+                log_http_error(response)
+                raise
+            except requests.exceptions.ConnectionError as err:
+                logging.info(f"[Zscaler API] Connection refused error: {err}\nSleeping for 2 minutes.")
+                time.sleep(120)
+                continue
+            success = True
+            progress = increment(progress, len(chunk))
+            result = response.json()
+            time.sleep(1)
     results.append(result)
     return results
 

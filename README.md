@@ -1,22 +1,20 @@
-# zscaler-FalconX-integration
+# ZIA/Falcon Integration: The Intel Bridge
 
-This tool seemlessly integrates CrowdStrike's Falcon X Threat Intelligence with zscaler's Zero Trust Exchange to provide an extra layer of security and visibility for web access. CrowdStrike's Falcon X module includes access to  cutting edge database of Indicators of Compromise curated by intelligence experts. 
+This tool seemlessly integrates CrowdStrike's Falcon's Threat Intelligence with zscaler's Zero Trust Exchange to provide an extra layer of security and visibility for web access. CrowdStrike's Falcon Intel module includes access to  cutting edge database of Indicators of Compromise curated by intelligence experts. 
 
-During runtime, the integration maintains a custom URL category in zscaler ZIA. Left to run indefinitely and unsupervised, it will automatically keep the custom URL category populated with the newest Falcon X Indicators.
+During runtime, the integration maintains a custom URL category in zscaler ZIA. Left to run indefinitely and unsupervised, it will automatically populate its URL Category with the newest Falcon Intel Indicators. This occurs in a 12 hour loop, and can be left running on a server for eternity or scheduled as a chron job.
 
 # Getting Started
+First, remove any CrowdStrike related URL Categories from your ZIA tenant from previous iterations of the integration. You only need to do this once, the script handles its creation and maintenence.
 ## Requirements
 - zscaler ZIA
-- CrowdStrike Falcon X
+- CrowdStrike Falcon Intel
 - Python 3+ (Python 2 will not work due to string parsing incompatibilities)
-
-## zscaler URL Category
-First, log into your ZIA tenant and then navigate to “Administration” -> “URL-Categories", and then add a new URL category with the name 'CrowdStrike Malicious URLs - High', in the URL Super Category select 'User-Defined'. The new category will not be accepted without any entries, so enter an arbitrary URL (examplefakeurl123.com), and then save.
 
 [zscaler URL Category documentation](https://help.zscaler.com/zia/adding-custom-url-categories)
 
 ## CrowdStrike OAuth2 Token Scope
-In the Falcon UI, navigate to API Clients and Keys. Then, click Add a New API Client. Create a client with READ permissions for Indicators (Falcon X). Save the resulting values, as you will need them to run the integration.
+In the Falcon UI, navigate to API Clients and Keys. Then, click Add a New API Client. Create a client with READ permissions for Indicators (Falcon Intel). Save the resulting values, as you will need them to run the integration.
 
 ## Download Repository
 ```bash
@@ -32,17 +30,22 @@ pip3 install -r requirements.txt
 ## Configure
 Input your configurations in config.ini. Do not use quotes or ticks for any of these values.
 
+Most of the fields are self-explanatory, but be sure to put some thought into the LIMIT field. This field determines how many malicious URLs the Intel Bridge will maintain in your ZIA tenant. Zscaler offers different subscription tiers with varying maximum custom URLs (from 25K to 275K). Consider this, as well as your existing custom URL categories when you choose a value, as going over the limit will cause runtime errors. So for example, if you have a limit of 25K, and are already using 10K in another URL category, consider a value like 14000. That way, you won't go over the limit, and you leave yourself some wiggle room.
+
+
 ```ini
 [CROWDSTRIKE]
 client=Your Falcon API Client ID
 secret=Your Falcon API Client Secret
 base_url=Your Falcon API Base URL (ex: https://api.crowdstrike.com)
-limit=Number of indicators to maintain (Default 10,000)
+limit=Number of indicators to maintain (Max: 275,000 Default 10,000)
 [ZSCALER]
 hostname=Your zscaler Hostname (Hostname only requires the base URL (i.e. https://zsapi.zscalerthree.net))
 username=Your ZIA Username
 password=Your ZIA Passsword
 token=Your ZIA API token
+[CHRON]
+disable_loop=Change this value to 1 if you are running the Intel Bridge via Chron job. This will force the program to quit after running. (Default 0, looping enabled)
 ```
 # Running the Integration
 With Python 3.7+ installed:
