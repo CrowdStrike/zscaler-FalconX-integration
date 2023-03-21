@@ -16,7 +16,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 cs_config = config['CROWDSTRIKE']
 cs_base_url = str(cs_config['base_url'])
-limit = int(cs_config['limit']) if int(cs_config['limit']) <= 275000 else 275000
+limit = int(cs_config['limit']) if int(cs_config['limit']) <= 275000 else 10000
 dir = os.path.dirname(os.path.realpath(__file__))
 new_indicators_data = f"{dir}/data_new"
 deleted_indicators_data = f"{dir}/data_deleted"
@@ -81,7 +81,7 @@ def get_indicators(falcon, deleted):
     # response = falcon.command("QueryIntelIndicatorIds", limit=limit, sort="published_date|desc",
     #                             filter=f"type:'url'+malicious_confidence:'high'",
     #                             include_deleted=deleted)
-    
+
 
     # # check_headers(response.headers._store, deleted)
     # indicators = response["body"]['resources']
@@ -108,7 +108,7 @@ def filter(prepared, i):
         # removes prefix by trimming the first '_' and preceding chars
         i = re.sub(prefix_regex, '', i)
         has_http_prefix = re.search(http_regex, i)
-        if has_http_prefix: i = has_http_prefix.group() 
+        if has_http_prefix: i = has_http_prefix.group()
         # remove the port suffix
         i = i.split(":", 1)[0]
         # validate ascii encoding just in case
@@ -160,9 +160,9 @@ def get_all_indicators(falcon):
             # a total number of available indicators is shown in the 'total' key.
             # This value will be reduced by our position from this timestamp as
             # indicated by the unique string appended to the timestamp, so as our
-            # loop progresses, the total remaining will decrement. Due to the 
+            # loop progresses, the total remaining will decrement. Due to the
             # large number of indicators created per minute, this number will also
-            # grow slightly while the loop progresses as these new indicators are 
+            # grow slightly while the loop progresses as these new indicators are
             # appended to the end of the resultset we are working with.
             total = page["total"]
             # Extend our indicators list by adding in the new records retrieved
