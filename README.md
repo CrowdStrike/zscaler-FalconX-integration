@@ -46,6 +46,8 @@ password=Your ZIA Passsword
 token=Your ZIA API token
 [CHRON]
 disable_loop=Change this value to 1 if you are running the Intel Bridge via Chron job. This will force the program to quit after running. (Default 0, looping enabled)
+[LOG]
+log_indicators=Change this value to 1 for indicators to be logged in logs/data_log as they are deleted and loaded.
 ```
 # Running the Integration
 With Python 3.7+ installed:

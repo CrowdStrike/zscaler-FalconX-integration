@@ -10,7 +10,7 @@ import time
 import json
 import math
 from auth.auth import zs_auth
-from util.util import increment, log_http_error, listSplit
+from util.util import increment, log_http_error, listSplit, write_data
 
 
 config = configparser.ConfigParser()
@@ -18,6 +18,8 @@ config.read('config.ini')
 zs_config = config['ZSCALER']
 zs_hostname = str(zs_config['hostname'])
 zs_url_category = "CrowdStrike"
+log_config = config['LOG']
+data_log = int(log_config['log_indicators'])
 
 def refresh_token():
     """Refreshes Zscaler API Auth token
@@ -150,6 +152,11 @@ def look_up_indicators(indicators, token):
                 token = zs_auth()
                 headers["cookie"] = "JSESSIONID=" + str(token)
                 continue
+            if response.status_code == 400:
+                logging.info(f"[Zscaler API] 400 Bad Request: One or more indicators in this chunk are incompatible with the URL look-up API. Skipping this chunk.")
+                progress = increment(progress, len(chunk))
+                time.sleep(1)
+                break
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError as err:
@@ -189,6 +196,8 @@ def push_indicators(token, category, indicators, deleted):
           f"{'='*20 if deleted else '='*22}")
     results = put_chunks(indicators, url, headers, progress)
     print(f"{'='*29}DONE{'='*29}")
+    if data_log == 1:
+        write_data(indicators, deleted)
     return results
 
 def put_chunks(indicators, url, headers, progress):

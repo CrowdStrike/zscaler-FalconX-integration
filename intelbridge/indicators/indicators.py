@@ -7,7 +7,6 @@ import requests
 import logging
 import re
 import os
-import time
 from auth.auth import cs_auth
 from util.util import log_http_error
 import datetime
@@ -18,8 +17,7 @@ cs_config = config['CROWDSTRIKE']
 cs_base_url = str(cs_config['base_url'])
 limit = int(cs_config['limit']) if int(cs_config['limit']) <= 275000 else 275000
 dir = os.path.dirname(os.path.realpath(__file__))
-new_indicators_data = f"{dir}/data_new"
-deleted_indicators_data = f"{dir}/data_deleted"
+
 
 def refresh_token():
     """Refreshes Falcon API Auth Token
@@ -27,32 +25,7 @@ def refresh_token():
     """
     return cs_auth()
 
-def write_data(entry, deleted):
-    """Writes the next_page URL to disk so etl_loop can pick up where it left off
-    entry - line to write to file
-    deleted - boolean for deleted or new indicators
-    returns: N/A
-    """
-    data_file = new_indicators_data if not deleted else deleted_indicators_data
-    data_file = data_file + "_" + time.strftime("%Y-%m-%d-%H_%M_%S", time.gmtime())
-    f = open(data_file, 'w')
-    f.write(f"{entry}")
-    f.close()
-    return
 
-def check_headers(headers, deleted):
-    """Looks for next_page URL in Falcon API response headers
-    headers - HTTP response headers from Falcon API
-    deleted - boolean for deleted or new indicators
-    returns: N/A
-    """
-    if 'next-page' in headers:
-            next_page_route = headers['next-page'][1]
-            next_page_url = f"{cs_base_url}{next_page_route}"
-            write_data(next_page_url, deleted)
-            logging.info(f"Next Page URL Found: {next_page_url}")
-    else:
-            write_data('', deleted)
 
 def request(headers, api_url, deleted):
     """Helper function for get_indicators that makes the HTTP request
@@ -77,15 +50,6 @@ def get_indicators(falcon, deleted):
     deleted - boolean for deleted or new indicators
     returns: unformatted list of indicators
     """
-    # del_filter = "deleted:true+" if deleted else ""
-    # response = falcon.command("QueryIntelIndicatorIds", limit=limit, sort="published_date|desc",
-    #                             filter=f"type:'url'+malicious_confidence:'high'",
-    #                             include_deleted=deleted)
-    
-
-    # # check_headers(response.headers._store, deleted)
-    # indicators = response["body"]['resources']
-    # logging.info(f"[Falcon API] responded with {len(indicators)} Indicators")
     return get_all_indicators(falcon)
 
 def filter(prepared, i):

@@ -6,6 +6,9 @@ import logging
 import time
 from requests_toolbelt.utils import dump
 
+
+
+
 def start_log():
     """Utility method for configuring logger
     returns: configured logging object
@@ -72,3 +75,18 @@ def next_hour():
 def log_http_error(resp):
     data = dump.dump_all(resp)
     logging.info(("HTTP related failure:\n" + data.decode('utf-8')))
+
+def write_data(entry, deleted):
+    """Writes the next_page URL to disk so etl_loop can pick up where it left off
+    entry - line to write to file
+    deleted - boolean for deleted or new indicators
+    returns: N/A
+    """    
+    new_indicators_data = f"logs/data_log/data_new"
+    deleted_indicators_data = f"logs/data_log/data_deleted"
+    data_file = new_indicators_data if not deleted else deleted_indicators_data
+    data_file = data_file + "_" + time.strftime("%Y-%m-%d-%H_%M_%S", time.gmtime()) +".log"
+    f = open(data_file, 'w')
+    f.write(f"{entry}")
+    f.close()
+    return    

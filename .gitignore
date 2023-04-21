@@ -1,6 +1,6 @@
 dev/*
-logs/*
+logs/*.log
+logs/data_log/*.log
 .vscode/*
-dev/*
 *__pycache__*
 *config.ini*
