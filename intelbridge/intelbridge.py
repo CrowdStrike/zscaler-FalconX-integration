@@ -107,14 +107,15 @@ class IntelBridge():
         end = int(time.time())
         loop_delta = convert(end - start)
         total_delta = convert(end - self.start_time)
-
-        if(chron == 1):
-            sys.exit(f"Looping Disabled! Intel Bridge completed. Time elapsed: {loop_delta}")
-
         logging.info(f"Finished loop {loop}! Time elapsed: {loop_delta};\n"
                      f"Total run time: {total_delta};\n"
-                     f"Indicators {'pushed' if not deleted else 'removed'}: {len(ingestable['urls'])};\n"
-                     f"Sleeping for 12 hours...Next update:{next_hour()}.\n")
+                     f"Indicators {'pushed' if not deleted else 'removed'}: {len(ingestable['urls'])};\n")
+
+        if(chron == 1):
+            logging.info(f"Looping Disabled! Intel Bridge completed. Time elapsed: {loop_delta}")
+            sys.exit()
+
+        logging.info(f"Looping enabled. Sleeping for 12 hours...Next update:{next_hour()}.\n")
         time.sleep(60*60*12)
         return deleted, loop + 1
 
