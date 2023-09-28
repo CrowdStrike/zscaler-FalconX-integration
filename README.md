@@ -55,10 +55,25 @@ With Python 3.7+ installed:
 python3 intelbridge
 ```
 
+# Patch Notes
+
+Added a new logging destination. Now, indicators that were rejected by the regex filter or by Zscaler will be logged in ./logs/rejected_log/. Also, the total rejected indicators count will be logged and displayed after a successfull run along side the number of successfully pushed indicators.
+
+example: 
+
+```
+Total run time: 0:00:49;
+Indicators pushed: 263;
+Indicators rejected: 736;
+```
+
+Added error handling for the ZIA API's 412 response code.
+
+
 # Support & Community Forums
 
 :fire: Is something going wrong? :fire:<br/>
 GitHub Issues are used to report bugs. Submit a ticket here:<br/>
 [https://github.com/CrowdStrike/zscaler-FalconX-integration/issues/new/choose](https://github.com/CrowdStrike/zscaler-FalconX-integration/issues/new/choose)
 
-**Be sure to include details from the most recent file in the ./log directory**
+**Be sure to include details from the most recent files in the ./log directory**

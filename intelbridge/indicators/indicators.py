@@ -9,6 +9,8 @@ import re
 import os
 from auth.auth import cs_auth
 from util.util import log_http_error
+from util.util import write_rejected
+
 import datetime
 import urllib
 config = configparser.ConfigParser()
@@ -52,7 +54,7 @@ def get_indicators(falcon, deleted):
     """
     return get_all_indicators(falcon)
 
-def filter(prepared, i):
+def filter(prepared, rejected, i):
     """Helper function for prepare_indicators,
     filters out or transforms malformed indicators that cant be indgested to Zscaler API
     prepared - list to append prepared indicators to
@@ -84,7 +86,10 @@ def filter(prepared, i):
         is_rfc_1918 = i[:3] == "10." or i[:4] == "172." or i[:4] == "192."
         if is_prepared and not is_rfc_1918:
             prepared.append(i)
-    return prepared
+        else:
+            rejected.append(i)
+
+    return prepared, rejected
 
 def prepare_indicators(indicators):
     """Returns indicators ready for ingestion to Zscaler API
@@ -92,11 +97,13 @@ def prepare_indicators(indicators):
     returns: a list of formatted URLs ready for Zscaler API ingestion
     """
     prepared = []
+    rejected = []
     logging.info("Preparing Indicators for Zscaler API")
     for i in indicators:
-        prepared = filter(prepared, i)
+        prepared, rejected = filter(prepared, rejected, i)
     logging.info(f"Successfully prepared {len(prepared)} Indicators for Zscaler API")
-    return prepared
+    write_rejected("regex filter rejected", rejected)
+    return prepared, len(rejected)
 
 
 
@@ -107,7 +114,7 @@ def get_all_indicators(falcon):
     # List to hold the indicators retrieved
     indicators_list = []
     # The maximum number of records to return from the QueryIndicatorEntities operation. (1-5000)
-    haul = 5000
+    haul = 1000
     # Sort for our results. We will sort ascending using our _marker timestamp.
     SORT = "_marker.desc"
     # Set total to one (1) so our initial loop starts. This will get reset by the API result.

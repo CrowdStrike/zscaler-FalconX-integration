@@ -90,3 +90,14 @@ def write_data(entry, deleted):
     f.write(f"{entry}")
     f.close()
     return    
+
+def write_rejected(message, entry):
+    """writes rejected URLs to a log file
+    """    
+    rejected_indicators_data = f"logs/rejected_log/data_rejected"
+    data_file = rejected_indicators_data
+    data_file = data_file + "_" + time.strftime("%Y-%m-%d", time.gmtime()) +".log"
+    f = open(data_file, 'a')
+    f.write(f"{time.strftime('%Y-%m-%d', time.gmtime())}: {message}: {entry}")
+    f.close()
+    return    

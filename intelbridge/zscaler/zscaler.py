@@ -10,7 +10,7 @@ import time
 import json
 import math
 from auth.auth import zs_auth
-from util.util import increment, log_http_error, listSplit, write_data
+from util.util import increment, log_http_error, listSplit, write_data, write_rejected
 
 
 config = configparser.ConfigParser()
@@ -99,11 +99,13 @@ def model_chunk(chunk):
     """
     modeled_urls = []
     categorized = []
+    alert = []
     if type(chunk) is not list:
             return {'urls': [], 'dbCategorizedUrls': []}
     for url in chunk:
         try:
             if url['urlClassificationsWithSecurityAlert']:
+                alert.append(url['url'])
                 pass
             elif 'urlClassifications' not in url:
                 modeled_urls.append(url['url'])
@@ -115,9 +117,15 @@ def model_chunk(chunk):
             e = sys.exc_info()[0]
             logging.info(str(e))
             pass
+        
+    logging.info(f"urlClassificationsWithSecurityAlert qty:{len(alert)} ")
+    logging.info(f"misc qty:{len(categorized)} ")
     modeled_chunk = {'urls': modeled_urls,
                      }
-    return modeled_chunk
+    write_rejected("urlClassificationsWithSecurityAlert known by zscaler", alert)
+    write_rejected("rejected by zscaler, misc reason", categorized)
+    amount_rejected = len(alert) + len(categorized)
+    return modeled_chunk, amount_rejected
 
 def look_up_indicators(indicators, token):
     """Queries the Zscaler API with indicators to categorize them
@@ -132,6 +140,7 @@ def look_up_indicators(indicators, token):
                'cache-control': "no-cache",
                'cookie': "JSESSIONID=" + str(token)}
     chunks = split_indicators(indicators)
+    amount_rejected = 0
     print(f"{'='*20}Zscaler API URL Lookup{'='*20}")
     progress = [0, 0, len(chunks), "Looking up URLs in indicator chunk"]
     for chunk in chunks:
@@ -152,6 +161,11 @@ def look_up_indicators(indicators, token):
                 token = zs_auth()
                 headers["cookie"] = "JSESSIONID=" + str(token)
                 continue
+            if response.status_code == 412:
+                logging.info(f"[Zscaler API] 412 Unknown error: Renewing auth and retrying.")
+                token = zs_auth()
+                headers["cookie"] = "JSESSIONID=" + str(token)
+                continue
             if response.status_code == 400:
                 logging.info(f"[Zscaler API] 400 Bad Request: One or more indicators in this chunk are incompatible with the URL look-up API. Skipping this chunk.")
                 progress = increment(progress, len(chunk))
@@ -162,19 +176,20 @@ def look_up_indicators(indicators, token):
             except requests.exceptions.HTTPError as err:
                 logging.info(f"[Zscaler API] URL Lookup Error: {err}")
                 log_http_error(response)
-                raise
+                continue
             except requests.exceptions.ConnectionError as err:
                 logging.info(f"[Zscaler API] Connection refused error: {err}\nSleeping for 2 minutes.")
                 time.sleep(120)
                 continue
             success = True
             classified_chunk = response.json()
-            modeled_chunk = model_chunk(classified_chunk)
+            modeled_chunk, rejected = model_chunk(classified_chunk)
+            amount_rejected = amount_rejected + rejected
             ingestable['urls'] += modeled_chunk['urls']
             progress = increment(progress, len(chunk))
             time.sleep(1)
     print(f"{'='*29}DONE{'='*29}")
-    return ingestable
+    return ingestable, amount_rejected
 
 def push_indicators(token, category, indicators, deleted):
     """Pushes new indicators to the Zscaler API
@@ -191,9 +206,9 @@ def push_indicators(token, category, indicators, deleted):
                'User-Agent' :'Zscaler-FalconX-Intel-Bridge-v2',
                'cookie': "JSESSIONID=" + str(token)}
     progress = [0, 0, len(indicators), "Posting URLs in indicator chunk"]
-    print(f"{'='*20 if deleted else '='*22}"
-          f"Posting {'Deleted' if deleted else 'New'}* URL's"
-          f"{'='*20 if deleted else '='*22}")
+    print(f"{'='*22 if deleted else '='*22}"
+          f"{'Removing Old' if deleted else 'Posting New'}* URL's"
+          f"{'='*21 if deleted else '='*22}")
     results = put_chunks(indicators, url, headers, progress)
     print(f"{'='*29}DONE{'='*29}")
     if data_log == 1:

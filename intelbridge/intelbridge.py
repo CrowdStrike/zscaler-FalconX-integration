@@ -56,9 +56,10 @@ class IntelBridge():
         indicators - List containing indicators pulled from Falcon API
         returns: Indicator list formatted for Zscaler API ingestion
         """
-        prepared = prepare_indicators(indicators)
-        ingestable = look_up_indicators(prepared, token)
-        return ingestable
+        prepared, amount_rejected_crwd = prepare_indicators(indicators)
+        ingestable, amount_rejected_zs = look_up_indicators(prepared, token)
+        amount_rejected = amount_rejected_zs + amount_rejected_crwd
+        return ingestable, amount_rejected
     
     def update(self, token, content, category, ingestable, deleted):
         """Handles updating the URL Category content
@@ -101,7 +102,7 @@ class IntelBridge():
         content = category['content']
         start = int(time.time())
         indicators = self.pull(falcon, deleted)
-        ingestable = self.prepare(zs_token, indicators)
+        ingestable, amount_rejected = self.prepare(zs_token, indicators)
         # write_data(ingestable, deleted)
         self.update(zs_token, content, category_name, ingestable, deleted)
         end = int(time.time())
@@ -109,7 +110,9 @@ class IntelBridge():
         total_delta = convert(end - self.start_time)
         logging.info(f"Finished loop {loop}! Time elapsed: {loop_delta};\n"
                      f"Total run time: {total_delta};\n"
-                     f"Indicators {'pushed' if not deleted else 'removed'}: {len(ingestable['urls'])};\n")
+                     f"Indicators {'pushed' if not deleted else 'removed'}: {len(ingestable['urls'])};\n"
+                     f"Indicators rejected: {amount_rejected};\n")
+
 
         if(chron == 1):
             logging.info(f"Looping Disabled! Intel Bridge completed. Time elapsed: {loop_delta}")
