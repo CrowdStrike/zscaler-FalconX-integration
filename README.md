@@ -37,6 +37,7 @@ Most of the fields are self-explanatory, but be sure to put some thought into th
 [CROWDSTRIKE]
 client=Your Falcon API Client ID
 secret=Your Falcon API Client Secret
+type=Type of indicators to push (ex: url, domain Default url)
 base_url=Your Falcon API Base URL (ex: https://api.crowdstrike.com)
 limit=Number of indicators to maintain (Max: 275,000 Default 10,000)
 [ZSCALER]
