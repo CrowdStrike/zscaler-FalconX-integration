@@ -17,6 +17,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 cs_config = config['CROWDSTRIKE']
 cs_base_url = str(cs_config['base_url'])
+cs_indicator_type = str(cs_config['type']) if 'type' in cs_config else 'url'
 limit = int(cs_config['limit']) if int(cs_config['limit']) <= 275000 else 275000
 dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -123,7 +124,7 @@ def get_all_indicators(falcon):
     while len(indicators_list) < limit:
         # Retrieve a batch of indicators passing in our marker timestamp and limit
         returned = falcon.command("QueryIntelIndicatorIds", limit=haul, sort=SORT,
-                                filter=f"_marker:<='{current_page}'+type:'url'+malicious_confidence:'high'")
+                                filter=f"_marker:<='{current_page}'+type:'{cs_indicator_type}'+malicious_confidence:'high'")
         if returned["status_code"] == 200:
             # Retrieve the pagination detail for this result
             page = returned["body"]["meta"]["pagination"]
@@ -140,8 +141,10 @@ def get_all_indicators(falcon):
             indicators_list.extend(returned["body"]["resources"])
             # Set our _marker to be the last one returned in our list,
             # we will use this to grab the next page of results
+            if 'Next-Page' not in returned['headers']:
+                logging.info(f"Missing Next-Page header")
+                break
             current_page = urllib.parse.unquote(returned['headers']['Next-Page']).split("+")[2].split("'")[1][:10]
-
             # Display our running progress
             logging.info(f"Retrieved: {len(indicators_list)}, Remaining: {total}, Marker: {current_page}")
         else:

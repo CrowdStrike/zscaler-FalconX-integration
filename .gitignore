@@ -1,6 +1,8 @@
 dev/*
 logs/*.log
 logs/data_log/*.log
+logs/rejected_log/*.log
 .vscode/*
+.idea/*
 *__pycache__*
 *config.ini*
