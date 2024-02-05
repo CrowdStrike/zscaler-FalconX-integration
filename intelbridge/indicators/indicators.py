@@ -141,8 +141,10 @@ def get_all_indicators(falcon):
             indicators_list.extend(returned["body"]["resources"])
             # Set our _marker to be the last one returned in our list,
             # we will use this to grab the next page of results
+            if 'Next-Page' not in returned['headers']:
+                logging.info(f"Missing Next-Page header")
+                break
             current_page = urllib.parse.unquote(returned['headers']['Next-Page']).split("+")[2].split("'")[1][:10]
-
             # Display our running progress
             logging.info(f"Retrieved: {len(indicators_list)}, Remaining: {total}, Marker: {current_page}")
         else:
