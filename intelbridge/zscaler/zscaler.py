@@ -112,7 +112,7 @@ def model_chunk(chunk):
             elif 'MISCELLANEOUS_OR_UNKNOWN' in url['urlClassifications']:
                 modeled_urls.append(url['url'])
             else:
-                categorized.append(url['url'])
+                modeled_urls.append(url['url'])
         except:
             e = sys.exc_info()[0]
             logging.info(str(e))
