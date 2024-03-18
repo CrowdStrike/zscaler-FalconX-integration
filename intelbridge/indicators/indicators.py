@@ -115,7 +115,7 @@ def get_all_indicators(falcon):
     # List to hold the indicators retrieved
     indicators_list = []
     # The maximum number of records to return from the QueryIndicatorEntities operation. (1-5000)
-    haul = 1000
+    haul = 5000
     # Sort for our results. We will sort ascending using our _marker timestamp.
     SORT = "_marker.desc"
     # Set total to one (1) so our initial loop starts. This will get reset by the API result.

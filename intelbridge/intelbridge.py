@@ -103,7 +103,6 @@ class IntelBridge():
         start = int(time.time())
         indicators = self.pull(falcon, deleted)
         ingestable, amount_rejected = self.prepare(zs_token, indicators)
-        # write_data(ingestable, deleted)
         self.update(zs_token, content, category_name, ingestable, deleted)
         end = int(time.time())
         loop_delta = convert(end - start)
