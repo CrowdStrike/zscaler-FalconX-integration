@@ -84,41 +84,22 @@ def create_catagory(token):
     c = response.json()
     return {'id':c['id'], 'content':{'urls':c['urls'][1:], 'dbCategorizedUrls':c['dbCategorizedUrls']}}
 
-def split_indicators(indicators):
-    """Splits a large list of indicators into chunks of 100 for URL lookup
-    indicators: list of indicators
-    returns: list of lists of indicators
-    """
-    chunks = [indicators[i:i + 100] for i in range(0, len(indicators), 100)]
-    return chunks
 
-def model_chunk(chunk):
-    """Transforms Indicator chunks into a Zscaler API ingestable model
-    chunk - list of unformatted indicators
-    returns: list of formatted indicators
-    """
-    modeled_chunk = {'urls': chunk}
-    return modeled_chunk, 0
 
-def look_up_indicators(indicators, token):
+def model_indicators(indicators):
     """Queries the Zscaler API with indicators to categorize them
     indicators: list of formatted indicators
     token - Zscaler Auth token
     returns: list of indicators ready for ingestion
     """
-    logging.info(f"[Zscaler API] Beginning URL look up loop")
+    logging.info(f"Modeling indicators with proper format for ingestion")
     ingestable = {'urls':[]}
-    chunks = split_indicators(indicators)
-    amount_rejected = 0
-    print(f"{'='*20}Zscaler API URL Lookup{'='*20}")
-    progress = [0, 0, len(chunks), "Looking up URLs in indicator chunk"]
+    chunks = [indicators[i:i + 100] for i in range(0, len(indicators), 100)]
     for chunk in chunks:
-        modeled_chunk, rejected = model_chunk(chunk)
-        amount_rejected = amount_rejected + rejected
+        modeled_chunk = {'urls': chunk}
         ingestable['urls'] += modeled_chunk['urls']
-        progress = increment(progress, len(chunk))
-    print(f"{'='*29}DONE{'='*29}")
-    return ingestable, amount_rejected
+    logging.info("Finished modeling indicators.")
+    return ingestable, 0
 
 def push_indicators(token, category, indicators, deleted):
     """Pushes new indicators to the Zscaler API

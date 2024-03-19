@@ -58,7 +58,11 @@ python3 intelbridge
 
 # Patch Notes
 
-Added a new logging destination. Now, indicators that were rejected by the regex filter or by Zscaler will be logged in ./logs/rejected_log/. Also, the total rejected indicators count will be logged and displayed after a successfull run along side the number of successfully pushed indicators.
+Due to popular demand, we've removed the URL Lookup feature. Previously, all URLs pulled form CrowdStrike Intel would be corss referenced with Zscaler's known URLs. If the URL was already cateegorized, it would be rejected by the script. This is no longer the case. All URLs will be pushed regardless of status with Zscaler. Our next patch will involve cleaning up the codebase and removing leftover references to deprecated processes and operations.
+
+By removing the URL Lookup procedure, stability, reliability, and ease of use has been significantly improved.
+
+We've added a new logging destination. Now, indicators that were rejected by the regex filter will be logged in ./logs/rejected_log/. Also, the total rejected indicators count will be logged and displayed after a successfull run along side the number of successfully pushed indicators.
 
 example: 
 
