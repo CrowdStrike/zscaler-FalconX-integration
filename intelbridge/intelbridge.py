@@ -23,7 +23,7 @@ import time
 import configparser
 import sys
 from indicators.indicators import get_indicators, prepare_indicators #, write_data
-from zscaler.zscaler import model_indicators, push_indicators, save_changes, validate_category
+from zscaler.zscaler import look_up_indicators, push_indicators, save_changes, validate_category
 from auth.auth import cs_auth
 from auth.auth import zs_auth
 from util.util import convert, next_hour
@@ -50,14 +50,14 @@ class IntelBridge():
         indicators = get_indicators(falcon, deleted)
         return indicators
 
-    def prepare(self, indicators):
+    def prepare(self, token, indicators):
         """Handles transforming indicators object into a Zscaler API ready model
         token - Falcon API Auth token
         indicators - List containing indicators pulled from Falcon API
         returns: Indicator list formatted for Zscaler API ingestion
         """
         prepared, amount_rejected_crwd = prepare_indicators(indicators)
-        ingestable, amount_rejected_zs = model_indicators(prepared)
+        ingestable, amount_rejected_zs = look_up_indicators(prepared, token)
         amount_rejected = amount_rejected_zs + amount_rejected_crwd
         return ingestable, amount_rejected
     
@@ -102,7 +102,8 @@ class IntelBridge():
         content = category['content']
         start = int(time.time())
         indicators = self.pull(falcon, deleted)
-        ingestable, amount_rejected = self.prepare(indicators)
+        ingestable, amount_rejected = self.prepare(zs_token, indicators)
+        # write_data(ingestable, deleted)
         self.update(zs_token, content, category_name, ingestable, deleted)
         end = int(time.time())
         loop_delta = convert(end - start)
@@ -118,7 +119,7 @@ class IntelBridge():
             sys.exit()
 
         logging.info(f"Looping enabled. Sleeping for 12 hours...Next update:{next_hour()}.\n")
-        time.sleep(60*60*12)
+        time.sleep(1000)#*60*12)
         return deleted, loop + 1
 
 

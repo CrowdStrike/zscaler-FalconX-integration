@@ -84,22 +84,112 @@ def create_catagory(token):
     c = response.json()
     return {'id':c['id'], 'content':{'urls':c['urls'][1:], 'dbCategorizedUrls':c['dbCategorizedUrls']}}
 
+def split_indicators(indicators):
+    """Splits a large list of indicators into chunks of 100 for URL lookup
+    indicators: list of indicators
+    returns: list of lists of indicators
+    """
+    chunks = [indicators[i:i + 100] for i in range(0, len(indicators), 100)]
+    return chunks
 
+def model_chunk(chunk):
+    """Transforms Indicator chunks into a Zscaler API ingestable model
+    chunk - list of unformatted indicators
+    returns: list of formatted indicators
+    """
+    modeled_urls = []
+    categorized = []
+    alert = []
+    if type(chunk) is not list:
+            return {'urls': [], 'dbCategorizedUrls': []}
+    for url in chunk:
+        try:
+            if url['urlClassificationsWithSecurityAlert']:
+                alert.append(url['url'])
+                pass
+            elif 'urlClassifications' not in url:
+                modeled_urls.append(url['url'])
+            elif 'MISCELLANEOUS_OR_UNKNOWN' in url['urlClassifications']:
+                modeled_urls.append(url['url'])
+            else:
+                modeled_urls.append(url['url'])
+        except:
+            e = sys.exc_info()[0]
+            logging.info(str(e))
+            pass
+        
+    logging.info(f"urlClassificationsWithSecurityAlert qty:{len(alert)} ")
+    logging.info(f"misc qty:{len(categorized)} ")
+    modeled_chunk = {'urls': modeled_urls,
+                     }
+    write_rejected("urlClassificationsWithSecurityAlert known by zscaler", alert)
+    write_rejected("rejected by zscaler, misc reason", categorized)
+    amount_rejected = len(alert) + len(categorized)
+    return modeled_chunk, amount_rejected
 
-def model_indicators(indicators):
+def look_up_indicators(indicators, token):
     """Queries the Zscaler API with indicators to categorize them
     indicators: list of formatted indicators
     token - Zscaler Auth token
     returns: list of indicators ready for ingestion
     """
-    logging.info(f"Modeling indicators with proper format for ingestion")
+    logging.info(f"[Zscaler API] Beginning URL look up loop")
     ingestable = {'urls':[]}
-    chunks = [indicators[i:i + 100] for i in range(0, len(indicators), 100)]
+    url =  f"{zs_hostname}/api/v1/urlLookup"
+    headers = {'content-type': "application/json",
+               'cache-control': "no-cache",
+               'cookie': "JSESSIONID=" + str(token)}
+    chunks = split_indicators(indicators)
+    amount_rejected = 0
+    print(f"{'='*20}Zscaler API URL Lookup{'='*20}")
+    progress = [0, 0, len(chunks), "Looking up URLs in indicator chunk"]
     for chunk in chunks:
-        modeled_chunk = {'urls': chunk}
-        ingestable['urls'] += modeled_chunk['urls']
-    logging.info("Finished modeling indicators.")
-    return ingestable, 0
+        success  = False
+        while not success:
+            response = requests.post(url=url, headers=headers, data=json.dumps(chunk))
+            if response.status_code == 429:
+                r = int(response.headers._store['retry-after'][1])
+                logging.info(f"[Zscaler API] Rate limit reached: Sleeping for {r} seconds.")
+                time.sleep(r+5)
+                continue
+            if response.status_code == 409:
+                logging.info(f"[Zscaler API] 409 Unknown Error: Sleeping for 10 and retrying 10 seconds.")
+                time.sleep(10)
+                continue
+            if response.status_code == 401:
+                logging.info(f"[Zscaler API] 401 Token Expired: Renewing auth and retrying.")
+                token = zs_auth()
+                headers["cookie"] = "JSESSIONID=" + str(token)
+                continue
+            if response.status_code == 412:
+                logging.info(f"[Zscaler API] 412 Unknown error: Renewing auth and retrying.")
+                token = zs_auth()
+                headers["cookie"] = "JSESSIONID=" + str(token)
+                continue
+            if response.status_code == 400:
+                logging.info(f"[Zscaler API] 400 Bad Request: One or more indicators in this chunk are incompatible with the URL look-up API. Skipping this chunk.")
+                progress = increment(progress, len(chunk))
+                time.sleep(1)
+                break
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as err:
+                logging.info(f"[Zscaler API] URL Lookup Error: {err}")
+                log_http_error(response)
+                continue
+            except requests.exceptions.ConnectionError as err:
+                logging.info(f"[Zscaler API] Connection refused error: {err}\nSleeping for 2 minutes.")
+                time.sleep(120)
+                continue
+            success = True
+            classified_chunk = response.json()
+            modeled_chunk, rejected = model_chunk(classified_chunk)
+            amount_rejected = amount_rejected + rejected
+            ingestable['urls'] += modeled_chunk['urls']
+            progress = increment(progress, len(chunk))
+            time.sleep(1)
+    print(f"{'='*29}DONE{'='*29}")
+    return ingestable, amount_rejected
 
 def push_indicators(token, category, indicators, deleted):
     """Pushes new indicators to the Zscaler API
@@ -139,10 +229,16 @@ def put_chunks(indicators, url, headers, progress):
     partitioned_indicators = listSplit(indicators, partitions)
     for chunk in partitioned_indicators:
         success  = False
+        # chunk = {'urls': chunk}
+        # if not chunk['urls'] and not chunk['dbCategorizedUrls']:
+        #         progress[0] = progress[0] + 1
+        #         progress[1] = progress[1] + 1
+        #         continue
         while not success:
             payload = {"customCategory": "true",
                     "superCategory": "USER_DEFINED",
                     "urls": chunk,
+                    #"dbCategorizedUrls": chunk['dbCategorizedUrls'],
                     "configuredName": zs_url_category
             }
             response = requests.put(url=url,headers=headers, data=json.dumps(payload))
