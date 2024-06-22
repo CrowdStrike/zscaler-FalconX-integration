@@ -68,7 +68,7 @@ def create_catagory(token):
                'User-Agent' :'Zscaler-FalconX-Intel-Bridge-v2',
                'cookie': "JSESSIONID=" + str(token)}
     payload = {
-            "id": 0,
+            "id": "ANY",
             "configuredName": zs_url_category,
             "customCategory": "true",
             "superCategory": "USER_DEFINED",
