@@ -2,9 +2,25 @@
 util.py
 Helper methods for intel bridge module
 """
+import json
 import logging
 import time
-from requests_toolbelt.utils import dump
+from typing import Any, Optional
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+import requests
+
+# Placeholder written in place of any sensitive value.
+REDACTED = "[REDACTED]"
+# Header names (lower-case) whose values must never be logged.
+SENSITIVE_HEADERS = frozenset({
+    "authorization", "proxy-authorization", "cookie", "set-cookie", "x-api-key",
+})
+# JSON / form / query field names (lower-case) whose values must never be logged.
+SENSITIVE_FIELDS = frozenset({
+    "password", "apikey", "api_key", "token", "access_token", "refresh_token",
+    "secret", "client_secret", "jsessionid",
+})
 
 
 
@@ -72,9 +88,137 @@ def increment(p, len):
 def next_hour():
        return time.strftime("%I:%M:%p",time.localtime(time.time()+43200))
 
-def log_http_error(resp):
-    data = dump.dump_all(resp)
-    logging.info(("HTTP related failure:\n" + data.decode('utf-8')))
+def _redact_fields(value: Any) -> Any:
+    """Recursively replace the values of sensitive keys in parsed JSON.
+
+    Args:
+        value: A JSON-decoded value (dict, list or scalar).
+
+    Returns:
+        A copy of ``value`` with sensitive keys' values replaced by REDACTED.
+    """
+    if isinstance(value, dict):
+        return {key: REDACTED if str(key).lower() in SENSITIVE_FIELDS else _redact_fields(item)
+                for key, item in value.items()}
+    if isinstance(value, list):
+        return [_redact_fields(item) for item in value]
+    return value
+
+
+def _redact_pairs(pairs: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Redact sensitive values in decoded query-string or form pairs.
+
+    Args:
+        pairs: ``(name, value)`` pairs, as returned by ``parse_qsl``.
+
+    Returns:
+        The pairs with sensitive values replaced by REDACTED.
+    """
+    return [(name, REDACTED if name.lower() in SENSITIVE_FIELDS else value)
+            for name, value in pairs]
+
+
+def _redact_headers(headers: Any) -> list[str]:
+    """Render headers as ``Name: value`` lines with sensitive values redacted.
+
+    Args:
+        headers: A mapping of header names to values.
+
+    Returns:
+        One formatted line per header.
+    """
+    return [f"{name}: {REDACTED if name.lower() in SENSITIVE_HEADERS else value}"
+            for name, value in headers.items()]
+
+
+def _redact_url(url: str) -> str:
+    """Remove embedded credentials and sensitive query values from a URL.
+
+    Args:
+        url: Absolute request URL.
+
+    Returns:
+        The URL, unchanged unless it carried userinfo or sensitive parameters.
+    """
+    parts = urlsplit(url)
+    if parts.username or parts.password:
+        host = parts.hostname or ""
+        parts = parts._replace(netloc=f"{host}:{parts.port}" if parts.port else host)
+    pairs = parse_qsl(parts.query, keep_blank_values=True)
+    if any(name.lower() in SENSITIVE_FIELDS for name, _ in pairs):
+        parts = parts._replace(query=urlencode(_redact_pairs(pairs), safe="[]"))
+    return urlunsplit(parts)
+
+
+def _describe_body(body: Any, content_type: str, opaque: Optional[str]) -> str:
+    """Render an HTTP body for logging with sensitive fields redacted.
+
+    JSON and form-encoded bodies are parsed and redacted. Any other body is
+    either replaced by ``opaque`` (used for request bodies, which may carry
+    secrets we cannot locate) or logged as text (used for response bodies,
+    whose error messages are needed for debugging).
+
+    Args:
+        body: Raw body as bytes or str (anything else is treated as opaque).
+        content_type: The Content-Type header value, or an empty string.
+        opaque: Placeholder for unparseable bodies, with an optional
+            ``{size}`` field; ``None`` to log such bodies verbatim.
+
+    Returns:
+        The loggable body, or an empty string when there is no body.
+    """
+    if not body:
+        return ""
+    if not isinstance(body, (bytes, str)):
+        return opaque.format(size="unknown") if opaque else "[streamed body omitted]"
+    text = body.decode("utf-8", "replace") if isinstance(body, bytes) else body
+    try:
+        return json.dumps(_redact_fields(json.loads(text)))
+    except ValueError:
+        pass
+    if "application/x-www-form-urlencoded" in content_type.lower():
+        return urlencode(_redact_pairs(parse_qsl(text, keep_blank_values=True)), safe="[]")
+    return opaque.format(size=len(text)) if opaque else text
+
+
+def format_http_exchange(resp: requests.Response) -> str:
+    """Describe a request/response pair for logs without secrets.
+
+    Request lines are prefixed with ``<`` and response lines with ``>``,
+    matching the layout of the requests-toolbelt dump this replaces.
+
+    Args:
+        resp: The response whose exchange should be described.
+
+    Returns:
+        A multi-line, redacted description of the exchange.
+    """
+    lines = []
+    request = resp.request
+    if request is not None:
+        lines.append(f"< {request.method} {_redact_url(request.url or '')}")
+        lines += [f"< {line}" for line in _redact_headers(request.headers)]
+        request_body = _describe_body(request.body, request.headers.get("Content-Type", ""),
+                                      opaque="[{size} byte non-JSON request body omitted]")
+        if request_body:
+            lines += ["<", f"< {request_body}"]
+        lines.append("")
+    lines.append(f"> HTTP {resp.status_code} {resp.reason or ''}".rstrip())
+    lines += [f"> {line}" for line in _redact_headers(resp.headers)]
+    response_body = _describe_body(resp.content, resp.headers.get("Content-Type", ""), opaque=None)
+    if response_body:
+        lines += [">", f"> {response_body}"]
+    return "\n".join(lines)
+
+
+def log_http_error(resp: requests.Response) -> None:
+    """Log a failed HTTP exchange with credentials and tokens redacted.
+
+    Args:
+        resp: The failed response to describe.
+    """
+    logging.info("HTTP related failure:\n" + format_http_exchange(resp))
+
 
 def write_data(entry, deleted):
     """Writes the next_page URL to disk so etl_loop can pick up where it left off
