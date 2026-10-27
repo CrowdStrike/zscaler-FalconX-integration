@@ -9,7 +9,7 @@ First, remove any CrowdStrike related URL Categories from your ZIA tenant from p
 ## Requirements
 - zscaler ZIA
 - CrowdStrike Falcon Intel
-- Python 3+ (Python 2 will not work due to string parsing incompatibilities)
+- Python 3.10+ (required by the pinned `requests` and `urllib3` releases; Python 2 will not work)
 
 [zscaler URL Category documentation](https://help.zscaler.com/zia/adding-custom-url-categories)
 
@@ -51,7 +51,7 @@ disable_loop=Change this value to 1 if you are running the Intel Bridge via Chro
 log_indicators=Change this value to 1 for indicators to be logged in logs/data_log as they are deleted and loaded.
 ```
 # Running the Integration
-With Python 3.7+ installed:
+With Python 3.10+ installed:
 ```bash
 python3 intelbridge
 ```
