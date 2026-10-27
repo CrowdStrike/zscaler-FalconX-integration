@@ -2,8 +2,11 @@
 util.py
 Helper methods for intel bridge module
 """
+import datetime
+import email.utils
 import json
 import logging
+import math
 import time
 from typing import Any, Optional
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -21,6 +24,8 @@ SENSITIVE_FIELDS = frozenset({
     "password", "apikey", "api_key", "token", "access_token", "refresh_token",
     "secret", "client_secret", "jsessionid",
 })
+# Delay used when a 429 response has no usable Retry-After header.
+DEFAULT_RETRY_AFTER_SECONDS = 60
 
 
 
@@ -219,6 +224,37 @@ def log_http_error(resp: requests.Response) -> None:
     """
     logging.info("HTTP related failure:\n" + format_http_exchange(resp))
 
+
+def retry_after_seconds(resp: requests.Response,
+                        default: int = DEFAULT_RETRY_AFTER_SECONDS) -> int:
+    """Return how long to wait before retrying, from the Retry-After header.
+
+    Supports both forms allowed by RFC 9110: delay-seconds (``"120"``) and an
+    HTTP-date. Uses only the public requests header API.
+
+    Args:
+        resp: A response (normally HTTP 429) that may carry Retry-After.
+        default: Seconds to wait when the header is missing or malformed.
+
+    Returns:
+        A non-negative number of seconds.
+    """
+    value = resp.headers.get("Retry-After")
+    if value is None:
+        logging.info(f"No Retry-After header on HTTP {resp.status_code}; waiting {default}s.")
+        return default
+    value = value.strip()
+    if value.isascii() and value.isdigit():
+        return int(value)
+    try:
+        retry_at = email.utils.parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        logging.info(f"Unparseable Retry-After header {value!r}; waiting {default}s.")
+        return default
+    if retry_at.tzinfo is None:
+        retry_at = retry_at.replace(tzinfo=datetime.timezone.utc)
+    delay = (retry_at - datetime.datetime.now(datetime.timezone.utc)).total_seconds()
+    return max(0, math.ceil(delay))
 
 def write_data(entry, deleted):
     """Writes the next_page URL to disk so etl_loop can pick up where it left off
