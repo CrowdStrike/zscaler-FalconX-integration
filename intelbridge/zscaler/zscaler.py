@@ -10,7 +10,8 @@ import time
 import json
 import math
 from auth.auth import zs_auth, zs_logout
-from util.util import increment, log_http_error, listSplit, write_data, write_rejected
+from util.util import (increment, log_http_error, listSplit, retry_after_seconds,
+                       write_data, write_rejected)
 
 
 config = configparser.ConfigParser()
@@ -148,7 +149,7 @@ def look_up_indicators(indicators, token):
         while not success:
             response = requests.post(url=url, headers=headers, data=json.dumps(chunk))
             if response.status_code == 429:
-                r = int(response.headers._store['retry-after'][1])
+                r = retry_after_seconds(response)
                 logging.info(f"[Zscaler API] Rate limit reached: Sleeping for {r} seconds.")
                 time.sleep(r+5)
                 continue
@@ -243,7 +244,7 @@ def put_chunks(indicators, url, headers, progress):
             }
             response = requests.put(url=url,headers=headers, data=json.dumps(payload))
             if response.status_code == 429:
-                r = int(response.headers._store['retry-after'][1])
+                r = retry_after_seconds(response)
                 logging.info(f"[Zscaler API] Rate limit reached: Sleeping for {r} seconds.")
                 time.sleep(r+5)
                 continue 
