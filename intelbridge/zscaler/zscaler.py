@@ -300,7 +300,7 @@ def save_changes(token):
         activate_response.raise_for_status()
     except requests.exceptions.HTTPError as err:
         logging.info(f"[Zscaler API] Activate Changes error: {err}")
-        log_http_error(status_response)
+        log_http_error(activate_response)
         raise
     activate = activate_response.json()
     logging.info(f"[Zscaler API] Changes activated: {json.dumps(activate)}")
