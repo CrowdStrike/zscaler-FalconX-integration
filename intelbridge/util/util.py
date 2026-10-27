@@ -2,13 +2,15 @@
 util.py
 Helper methods for intel bridge module
 """
+import configparser
 import datetime
 import email.utils
 import json
 import logging
 import math
 import time
-from typing import Any, Optional
+from dataclasses import dataclass
+from typing import Any, Callable, Mapping, Optional, TypeVar
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import requests
@@ -26,6 +28,121 @@ SENSITIVE_FIELDS = frozenset({
 })
 # Delay used when a 429 response has no usable Retry-After header.
 DEFAULT_RETRY_AFTER_SECONDS = 60
+# Optional config.ini section holding timeout and retry settings.
+HTTP_SECTION = "HTTP"
+
+_T = TypeVar("_T")
+
+
+@dataclass(frozen=True)
+class HttpSettings:
+    """Timeout and retry settings from the optional [HTTP] config section.
+
+    Attributes:
+        connect_timeout: Seconds allowed to establish a connection.
+        read_timeout: Seconds allowed to wait for a response.
+        max_retries: Retries after a failed attempt; 0 disables retrying.
+        retry_backoff: Delay before the first retry, doubled on each retry.
+    """
+
+    connect_timeout: float = 10.0
+    read_timeout: float = 120.0
+    max_retries: int = 5
+    retry_backoff: float = 30.0
+
+    @property
+    def timeout(self) -> tuple[float, float]:
+        """The ``(connect, read)`` timeout tuple accepted by requests and falconpy."""
+        return (self.connect_timeout, self.read_timeout)
+
+
+def _setting(section: Mapping[str, str], key: str, default: _T,
+             parse: Callable[[str], _T], valid: Callable[[_T], bool], requirement: str) -> _T:
+    """Read and validate one value from the [HTTP] section.
+
+    Args:
+        section: The config section (missing keys yield ``default``).
+        key: Option name.
+        default: Value used when the option is absent.
+        parse: Converts the raw string, raising ValueError if it cannot.
+        valid: Returns True when the parsed value is acceptable.
+        requirement: Human-readable description used in the error message.
+
+    Returns:
+        The parsed value, or ``default`` when the option is absent.
+
+    Raises:
+        ValueError: If the option is present but invalid.
+    """
+    raw = section.get(key)
+    if raw is None:
+        return default
+    try:
+        value = parse(raw.strip())
+    except ValueError:
+        value = None
+    if value is None or not valid(value):
+        raise ValueError(f"config.ini [{HTTP_SECTION}] {key} must be {requirement}; got {raw!r}")
+    return value
+
+
+def load_http_settings(config: configparser.ConfigParser) -> HttpSettings:
+    """Build HttpSettings from config.ini, using defaults for anything unset.
+
+    The [HTTP] section is optional so existing config files keep working.
+
+    Args:
+        config: The parsed config.ini.
+
+    Returns:
+        Validated timeout and retry settings.
+
+    Raises:
+        ValueError: If any [HTTP] value is present but invalid.
+    """
+    defaults = HttpSettings()
+    if not config.has_section(HTTP_SECTION):
+        return defaults
+    section = config[HTTP_SECTION]
+
+    def positive(value: float) -> bool:
+        return math.isfinite(value) and value > 0
+
+    def non_negative(value: float) -> bool:
+        return math.isfinite(value) and value >= 0
+
+    return HttpSettings(
+        connect_timeout=_setting(section, "connect_timeout", defaults.connect_timeout,
+                                 float, positive, "a number greater than 0"),
+        read_timeout=_setting(section, "read_timeout", defaults.read_timeout,
+                              float, positive, "a number greater than 0"),
+        max_retries=_setting(section, "max_retries", defaults.max_retries,
+                             int, lambda value: value >= 0, "a whole number of 0 or more"),
+        retry_backoff=_setting(section, "retry_backoff", defaults.retry_backoff,
+                               float, non_negative, "a number of 0 or more"),
+    )
+
+
+def wait_before_retry(failures: int, settings: HttpSettings, error: Exception) -> None:
+    """Back off before the next attempt, or re-raise once retries are used up.
+
+    The delay doubles with each consecutive failure: retry_backoff,
+    2 x retry_backoff, 4 x retry_backoff, and so on.
+
+    Args:
+        failures: Consecutive failed attempts so far (1 for the first failure).
+        settings: Retry limits and backoff.
+        error: The exception from the latest attempt.
+
+    Raises:
+        Exception: ``error`` itself, once ``failures`` exceeds max_retries.
+    """
+    if failures > settings.max_retries:
+        logging.error(f"Giving up after {settings.max_retries} retries: {error}")
+        raise error
+    delay = settings.retry_backoff * 2 ** (failures - 1)
+    logging.info(f"Retry {failures}/{settings.max_retries} in {delay:g} seconds.")
+    time.sleep(delay)
 
 
 

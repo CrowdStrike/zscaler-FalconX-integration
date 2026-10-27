@@ -49,7 +49,14 @@ token=Your ZIA API token
 disable_loop=Change this value to 1 if you are running the Intel Bridge via Chron job. This will force the program to quit after running. (Default 0, looping enabled)
 [LOG]
 log_indicators=Change this value to 1 for indicators to be logged in logs/data_log as they are deleted and loaded.
+[HTTP]
+connect_timeout=Seconds allowed to establish a connection (Default 10)
+read_timeout=Seconds allowed to wait for a response (Default 120)
+max_retries=Retries after a connection error, timeout or URL lookup error; 0 disables retrying (Default 5)
+retry_backoff=Seconds before the first retry; the wait doubles on each retry (Default 30)
 ```
+
+The `[HTTP]` section is optional: if it, or any value in it, is missing, the defaults above are used, so existing config files keep working. Invalid values (for example a negative timeout) stop the Intel Bridge at startup with a message naming the setting. With the defaults, a request that keeps failing is retried after 30, 60, 120, 240 and 480 seconds before the run stops with an error.
 # Running the Integration
 With Python 3.10+ installed:
 ```bash

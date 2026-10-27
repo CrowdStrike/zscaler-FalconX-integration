@@ -7,7 +7,7 @@ import requests
 import logging
 import re
 import os
-from auth.auth import cs_auth
+from auth.auth import cs_auth, http_settings
 from util.util import log_http_error
 from util.util import write_rejected
 
@@ -38,7 +38,7 @@ def request(headers, api_url, deleted):
     returns: Falcon API HTTP response
     """
     logging.info(f"[Falcon API] Getting {'deleted' if deleted else 'new'} Indicators")
-    response = requests.get(url=api_url, headers=headers)
+    response = requests.get(url=api_url, headers=headers, timeout=http_settings.timeout)
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
