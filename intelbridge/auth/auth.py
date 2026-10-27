@@ -7,7 +7,7 @@ import configparser
 import requests
 import time
 import json
-from util.util import log_http_error
+from util.util import load_http_settings, log_http_error
 from falconpy import APIHarness
 
 
@@ -22,6 +22,8 @@ zs_hostname = str(zs_config['hostname'])
 zs_username = str(zs_config['username'])
 zs_password = str(zs_config['password'])
 zs_api_key = str(zs_config['token'])
+# Timeouts from the optional [HTTP] section of config.ini.
+http_settings = load_http_settings(config)
 
 
 def cs_auth():
@@ -42,7 +44,8 @@ def cs_auth():
     # token = response.json()["access_token"]
 
     falcon = APIHarness(client_id=cs_client, client_secret=cs_secret,
-                        base_url=cs_base_url, user_agent="zscaler-falcon-intel-bridge-v2.2")
+                        base_url=cs_base_url, user_agent="zscaler-falcon-intel-bridge-v2.2",
+                        timeout=http_settings.timeout)
 
     return falcon
 
@@ -72,7 +75,8 @@ def zs_auth():
     payload = {"username": zs_username, "password": zs_password,
                "apiKey": obfuscated_api_key, "timestamp": now}
     headers = {'Content-Type': 'application/json','cache-control': "no-cache"}
-    response = requests.request("POST", url, headers=headers, data=json.dumps(payload))
+    response = requests.request("POST", url, headers=headers, data=json.dumps(payload),
+                                timeout=http_settings.timeout)
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
@@ -92,7 +96,7 @@ def zs_logout(token):
     headers = {'Content-Type': 'application/json',
                'cache-control': "no-cache",
                'cookie': "JSESSIONID=" + str(token)}
-    response = requests.delete(url=url, headers=headers)
+    response = requests.delete(url=url, headers=headers, timeout=http_settings.timeout)
     try:
         response.raise_for_status()
         logging.info("Successfully logged out from Zscaler API")

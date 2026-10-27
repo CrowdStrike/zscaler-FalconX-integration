@@ -10,8 +10,8 @@ import time
 import json
 import math
 from auth.auth import zs_auth, zs_logout
-from util.util import (increment, log_http_error, listSplit, retry_after_seconds,
-                       write_data, write_rejected)
+from util.util import (increment, load_http_settings, log_http_error, listSplit,
+                       retry_after_seconds, wait_before_retry, write_data, write_rejected)
 
 
 config = configparser.ConfigParser()
@@ -21,6 +21,10 @@ zs_hostname = str(zs_config['hostname'])
 zs_url_category = "CrowdStrike"
 log_config = config['LOG']
 data_log = int(log_config['log_indicators'])
+# Timeouts and retry limits from the optional [HTTP] section of config.ini.
+http_settings = load_http_settings(config)
+# Failures that are retried with backoff up to http_settings.max_retries.
+TRANSIENT_ERRORS = (requests.exceptions.ConnectionError, requests.exceptions.Timeout)
 
 def refresh_token():
     """Refreshes Zscaler API Auth token
@@ -39,7 +43,7 @@ def validate_category(token):
                'cache-control': 'no-cache',
                'User-Agent' :'Zscaler-FalconX-Intel-Bridge-v2',
                'cookie': "JSESSIONID=" + str(token)}
-    response = requests.get(url=url, headers=headers)
+    response = requests.get(url=url, headers=headers, timeout=http_settings.timeout)
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
@@ -75,7 +79,8 @@ def create_catagory(token):
             "superCategory": "USER_DEFINED",
             "urls": ["mine.ppxxmr.com"]
         }
-    response = requests.post(url=url, headers=headers, data=json.dumps(payload))
+    response = requests.post(url=url, headers=headers, data=json.dumps(payload),
+                             timeout=http_settings.timeout)
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
@@ -146,8 +151,16 @@ def look_up_indicators(indicators, token):
     progress = [0, 0, len(chunks), "Looking up URLs in indicator chunk"]
     for chunk in chunks:
         success  = False
+        failures = 0  # consecutive transient failures for this chunk
         while not success:
-            response = requests.post(url=url, headers=headers, data=json.dumps(chunk))
+            try:
+                response = requests.post(url=url, headers=headers, data=json.dumps(chunk),
+                                         timeout=http_settings.timeout)
+            except TRANSIENT_ERRORS as err:
+                failures += 1
+                logging.info(f"[Zscaler API] URL Lookup connection error: {err}")
+                wait_before_retry(failures, http_settings, err)
+                continue
             if response.status_code == 429:
                 r = retry_after_seconds(response)
                 logging.info(f"[Zscaler API] Rate limit reached: Sleeping for {r} seconds.")
@@ -175,12 +188,10 @@ def look_up_indicators(indicators, token):
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError as err:
+                failures += 1
                 logging.info(f"[Zscaler API] URL Lookup Error: {err}")
                 log_http_error(response)
-                continue
-            except requests.exceptions.ConnectionError as err:
-                logging.info(f"[Zscaler API] Connection refused error: {err}\nSleeping for 2 minutes.")
-                time.sleep(120)
+                wait_before_retry(failures, http_settings, err)
                 continue
             success = True
             classified_chunk = response.json()
@@ -230,6 +241,7 @@ def put_chunks(indicators, url, headers, progress):
     partitioned_indicators = listSplit(indicators, partitions)
     for chunk in partitioned_indicators:
         success  = False
+        failures = 0  # consecutive transient failures for this chunk
         # chunk = {'urls': chunk}
         # if not chunk['urls'] and not chunk['dbCategorizedUrls']:
         #         progress[0] = progress[0] + 1
@@ -242,7 +254,14 @@ def put_chunks(indicators, url, headers, progress):
                     #"dbCategorizedUrls": chunk['dbCategorizedUrls'],
                     "configuredName": zs_url_category
             }
-            response = requests.put(url=url,headers=headers, data=json.dumps(payload))
+            try:
+                response = requests.put(url=url, headers=headers, data=json.dumps(payload),
+                                        timeout=http_settings.timeout)
+            except TRANSIENT_ERRORS as err:
+                failures += 1
+                logging.info(f"[Zscaler API] Add new URLs connection error: {err}")
+                wait_before_retry(failures, http_settings, err)
+                continue
             if response.status_code == 429:
                 r = retry_after_seconds(response)
                 logging.info(f"[Zscaler API] Rate limit reached: Sleeping for {r} seconds.")
@@ -263,10 +282,6 @@ def put_chunks(indicators, url, headers, progress):
                 logging.info(f"[Zscaler API] Add new URLs error: {err}")
                 log_http_error(response)
                 raise
-            except requests.exceptions.ConnectionError as err:
-                logging.info(f"[Zscaler API] Connection refused error: {err}\nSleeping for 2 minutes.")
-                time.sleep(120)
-                continue
             success = True
             progress = increment(progress, len(chunk))
             result = response.json()
@@ -286,7 +301,7 @@ def save_changes(token):
                'cache-control': "no-cache",
                'User-Agent' :'Zscaler-FalconX-Intel-Bridge-v2',
                'cookie': "JSESSIONID=" + str(token)}
-    status_response = requests.get(url=status_url, headers=headers)
+    status_response = requests.get(url=status_url, headers=headers, timeout=http_settings.timeout)
     try:
         status_response.raise_for_status()
     except requests.exceptions.HTTPError as err:
@@ -295,7 +310,7 @@ def save_changes(token):
         raise
     status = status_response.json()
     logging.info(f"[Zscaler API] New change status: {json.dumps(status)}")
-    activate_response = requests.post(url=save_url, headers=headers)
+    activate_response = requests.post(url=save_url, headers=headers, timeout=http_settings.timeout)
     try:
         activate_response.raise_for_status()
     except requests.exceptions.HTTPError as err:
